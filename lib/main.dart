@@ -8,10 +8,10 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'ASBasic/ASLaunch.dart';
+import 'ASTool/ASLogger.dart';
 import 'ASTool/as_LocalProvider.dart';
+import 'ASTool/ASFKManger.dart';
 import 'package:spine_flutter/spine_flutter.dart';
-
-
 
 Future<void> main() async {
   // 初始化Flutter绑定（确保async操作在runApp前执行）
@@ -57,6 +57,7 @@ Future<void> main() async {
   final localStorageProvider = ASLocalProvider.instance;
   await localStorageProvider.init();
   await trigger.init();
+  await ASFKManger().initFKJson();
   // 模拟排队完成
   // PSLocalProvider.instance.updateint(PSLocalProvider.instance.ps_quiz_all_numName, 0);
   // PSLocalProvider.instance.updatedouble(PSLocalProvider.instance.ps_pig_level_indexName, 0);

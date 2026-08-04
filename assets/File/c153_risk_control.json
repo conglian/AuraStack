@@ -1,0 +1,15 @@
+{
+  "ui": {
+    "number": 0,
+    "device": 0
+  },
+  "device": [
+    "vpn",
+    "root",
+    "sim",
+    "simulator",
+    "googleplay",
+    "developer",
+    "ip"
+  ]
+}

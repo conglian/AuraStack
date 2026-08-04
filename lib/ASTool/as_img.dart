@@ -232,8 +232,6 @@ class _ASAnimatedImageMoveState extends State<ASAnimatedImageMove>
         widget.targetKey.currentContext?.findRenderObject() as RenderBox?;
     final RenderBox? parentBox = context.findRenderObject() as RenderBox?;
 
-    print('targetBox: $targetBox');
-    print('parentBox: $parentBox');
     if (targetBox != null && parentBox != null) {
       final targetPosition = targetBox.localToGlobal(Offset.zero);
       final parentPosition = parentBox.localToGlobal(Offset.zero);
@@ -247,8 +245,6 @@ class _ASAnimatedImageMoveState extends State<ASAnimatedImageMove>
             ),
           );
       _controller.forward();
-      'startAnimation'.log();
-      print('Controller status: ${_controller.status}');
     }
   }
 

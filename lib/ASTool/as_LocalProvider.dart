@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:aurastack/ASTool/ASLogger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -552,7 +553,6 @@ class ASLocalProvider extends ChangeNotifier {
     as_scratch_num_index = prefs.getInt('as_scratch_num_index') ?? 0;
     as_card_quicken_num = prefs.getDouble('as_card_quicken_nums') ?? 0;
     Future.delayed(Duration(milliseconds: 100),(){
-      'updateUI=${as_dollar_number}'.log();
       notifyListeners(); // 加载完成后通知UI更新
     });
   }
@@ -577,14 +577,14 @@ class ASLocalProvider extends ChangeNotifier {
     if (key == ASLocalProvider.instance.as_dollar_numberName) {
         // CSNoticeHelp().startSJForegroundService();
     }
-    print("value= $value");
+    asLog.info("value= $value");
     await prefs.setDouble(key, value);
     if (key == ASLocalProvider.instance.as_dollar_numberName && value > 0) {
       await prefs.setDouble(as_dolas_old_numberName,  as_dolas_old_number + value);
     }
     if (key == ASLocalProvider.instance.as_dollar_numberName && value > 0){
       trigger.check(ASLocalProvider.instance.as_dollar_number.toInt(), onTrigger: (level) {
-        print("触发 → 达到 $level");
+        asLog.info("触发 → 达到 $level");
         as_event_fire('cash_money_detail', {'money' : level});
       });
       await prefs.setBool(as_show_dolas_aniName, true);

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:spine_flutter/spine_widget.dart' as spine;
 import '../ASMainVC/ASHome.dart';
+import '../ASTool/ASLogger.dart';
 import '../ASTool/ASTBAEventTool.dart';
 import '../ASTool/as_LocalProvider.dart';
 import '../ASTool/as_extension_help.dart';
@@ -45,7 +46,7 @@ class ASLaunchState extends State<ASLaunch>
   void as_getUserCloakConfig() async {
     try {
       var responseData = await ASRequestHelpers().getCloak();
-      print('pigwalletspine Config Result: $responseData');
+      asLog.info('pigwalletspine Config Result: $responseData');
       as_event_fire("cloak_req", {});
       as_event_fire("cloak_suc", {
         "cloak_user": responseData.toString() == "freshen" ? 1 : 0,
@@ -56,7 +57,7 @@ class ASLaunchState extends State<ASLaunch>
       }
       ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_cloak_statusName, responseData.toString() == "freshen" ? true : false);
     } catch (e) {
-      print('pigwalletspine Request Error: $e');
+      asLog.error('pigwalletspine Request Error: $e');
       Future.delayed(Duration(seconds: 1), () {
         as_getUserCloakConfig();
       });

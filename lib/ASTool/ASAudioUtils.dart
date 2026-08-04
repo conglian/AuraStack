@@ -1,5 +1,6 @@
 import 'package:audioplayers/audioplayers.dart';
 
+import 'ASLogger.dart';
 import 'as_LocalProvider.dart';
 import 'as_extension_help.dart';
 
@@ -141,7 +142,7 @@ class ASAudioUtils {
       await player.setVolume(volume);
       await player.play(AssetSource(assetPath));
     } catch (e, st) {
-      "playTempAudio play error: $e\n$st".log();
+      asLog.error("playTempAudio play error: $e\n$st");
     }
   }
 

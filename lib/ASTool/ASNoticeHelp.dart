@@ -618,14 +618,14 @@
 //       /// `isBackground` is false => foreground
 //       print('Status background $isBackground');
 //       if (isBackground == true) {
-//         print('App进入后台');
+//         asLog.info('App进入后台');
 //         // SJAudioUtils().pauseBGM();
 //         CSFKManger().cs_add_tabsession_custom();
 //         // 执行后台逻辑
 //         cs_session_fire();
 //         cs_event_fire('session_back_get', {'"pak_version' : CSLocalProvider.instance.cs_login_status ? 1 : 0});
 //       } else {
-//         print('App进入前台');
+//         asLog.info('App进入前台');
 //         // if (PSLocalProvider.instance.ps_bg_music && !SJJoyAds().someAdIsShowing()){
 //         //   SJAudioUtils().playBGM();
 //         // }

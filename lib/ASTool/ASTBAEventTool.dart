@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_tba_info/flutter_tba_info.dart';
+import 'ASLogger.dart';
 import 'as_extension_help.dart';
 
 
@@ -56,11 +57,11 @@ class ASRequestHelpers {
   static String cloak_Url =
       "https://fancy.scratchcardearngopro.com/sault/commute";
 
-  // static String tba_event_Url =
-  //     "https://test-mark.scratchcardearngopro.com/molten/pimp/girt";
-
   static String tba_event_Url =
-      "https://mark.scratchcardearngopro.com/brant/schooner/highland";
+      "https://test-mark.scratchcardearngopro.com/molten/pimp/girt";
+
+  // static String tba_event_Url =
+  //     "https://mark.scratchcardearngopro.com/brant/schooner/highland";
 
   final Map<String, String> normalHeader = {
     'Content-Type': 'application/json',
@@ -72,7 +73,7 @@ class ASRequestHelpers {
 
   Future<dynamic> getCloak() async {
     var url = Uri.parse("${cloak_Url}?risen=${await FlutterTbaInfo.instance.getBundleId()}&toluene=soon&species=${await FlutterTbaInfo.instance.getAppVersion()}&qs=${DateTime.now().millisecondsSinceEpoch}");
-    "scratch play land config request ${url}".log();
+    asLog.info("aurastack play land config request ${url}");
     try {
       var response = await http.get(
         url,
@@ -80,7 +81,7 @@ class ASRequestHelpers {
       );
       return _handleResponse(response);
     } catch (e) {
-      "upload event [cloak] faild error $e".log();
+      asLog.error("upload event [cloak] faild error $e");
     }
   }
 
@@ -97,18 +98,18 @@ class ASRequestHelpers {
     }
     var url = Uri.parse(
         "${tba_event_Url}");
-    "upload event [${eventName}] url ${url} \n ${data}".log();
+    asLog.info("upload event [${eventName}] url ${url} \n ${data}");
     try {
       var response = await http.post(
         url,
         headers: eventHeader,
         body: jsonEncode(data),
       );
-      print("upload event [${eventName}] success ${response.body}");
+      asLog.success("upload event [${eventName}] success ${response.body}");
       // "upload event [${eventName}] success ${response.body}".log();
       return _handleResponse(response);
     } catch (e) {
-      "upload event [${eventName}] faild error $e".log();
+      asLog.error("upload event [${eventName}] faild error $e");
       // throw Exception('Failed to perform POST request: $e');
     }
   }
@@ -141,7 +142,9 @@ extension RequestHelpersExtension on ASRequestHelpers {
       "toluene": 'soon',
       "species": await FlutterTbaInfo.instance.getAppVersion(),
     };
-    'queryBody=$queryBody'.log();
+    asLog.debug(
+      'queryBody=$queryBody',
+    );
     return Uri(queryParameters: queryBody).query;
   }
 

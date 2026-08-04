@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:aurastack/ASTool/ASLogger.dart';
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:webview_flutter/webview_flutter.dart';
@@ -28,8 +29,7 @@ class _ASWebkitviewState extends State<ASWebkitview> {
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) async {
             final url = request.url;
-            "$TAG intercept: $url".log();
-
+            asLog.debug("$TAG intercept: $url");
             // if (navRedirect(url)) {
             //   urlJump(url);
             //   return NavigationDecision.prevent; // 拦截特殊 scheme，不加载
@@ -43,7 +43,7 @@ class _ASWebkitviewState extends State<ASWebkitview> {
   }
 
   urlJump(String url) async {
-    "$TAG==_jumpNext=canJump:$url=".log();
+    asLog.debug("$TAG==_jumpNext=canJump:$url=");
     if (url.startsWith("intent://")) {
       try {
         // StepWinUtils().parse_android_intent(data: u);

@@ -7,12 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 extension CardWalletSpinearnExtension on String {
-  void log() {
-    assert(() {
-      print("<AuraStack Debug> ============: $this");
-      return true;
-    }());
-  }
 
   String image() {
     return "assets/images/$this.webp";

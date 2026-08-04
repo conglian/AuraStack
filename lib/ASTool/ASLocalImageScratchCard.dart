@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'ASAudioUtils.dart';
+import 'ASLogger.dart';
 import 'as_LocalProvider.dart';
 import 'as_extension_help.dart';
 
@@ -113,7 +114,7 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
         if (widget.autoScratch) _generateAutoScratchPath();
       });
     } catch (e) {
-      debugPrint('加载刮卡图片出错: $e');
+      asLog.error('加载刮卡图片出错: $e');
     }
   }
 
