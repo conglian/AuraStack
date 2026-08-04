@@ -1,0 +1,57 @@
+*~
+# Xcode
+.DS_Store
+/build/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata
+profile
+*.moved-aside
+DerivedData
+.idea/
+*.hmap
+*.xccheckout
+*.xcworkspace
+!default.xcworkspace
+#CocoaPods
+Pods
+!Podfile
+# 最好也忽略Podfile.lock
+# !Podfile.lock
+.DS_Store
+# 构建产物
+/build/
+
+# 本地开发配置
+.idea/
+.vscode/
+.DS_Store
+.gradle/
+.local.properties
+android/.gradle/
+android/app/build/
+android/build/
+ios/Flutter/Flutter.podspec
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Generated.xcconfig
+ios/Runner/GeneratedPluginRegistrant.*
+ios/Runner.xcworkspace/
+ios/Runner.xcodeproj/xcuserdata/
+
+# Dart 依赖缓存
+.dart_tool/
+.pub-cache/
+.pub/
+
+# 日志文件
+*.log
+
+# 本地配置文件
+.env

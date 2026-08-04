@@ -1,0 +1,22 @@
+skeleton.png
+size:80,223
+filter:Linear,Linear
+pma:true
+scale:0.6
+1
+bounds:55,93,19,20
+offsets:4,4,29,27
+rotate:90
+Group 11
+bounds:2,37,67,43
+offsets:1,1,69,45
+Group 12
+bounds:2,2,75,33
+offsets:0,1,76,34
+Group 4899160
+bounds:55,114,107,23
+rotate:90
+m
+bounds:2,82,139,51
+offsets:0,3,139,61
+rotate:90
