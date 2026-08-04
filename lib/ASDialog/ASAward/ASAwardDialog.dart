@@ -106,7 +106,7 @@ class ASYouWinDialogState extends State<ASYouWinDialog>
                               skColor: '#41740A'.color(),
                             ),
                             ASStrokeText(
-                              text: '\$40.00',
+                              text: '\$${(0.to2Double(widget.award * 2))}',
                               size: 28,
                               color: '#F7FF00'.color(),
                               weight: FontWeight.w900,
@@ -145,7 +145,7 @@ class ASYouWinDialogState extends State<ASYouWinDialog>
           bottom: 288.h,
 
           child: ASStrokeText(
-            text: '\$20.23',
+            text: '\$${widget.award}',
 
             size: 48,
 
@@ -193,7 +193,7 @@ class ASYouWinDialogState extends State<ASYouWinDialog>
                           color: '#733A1B'.color(),
                         ),
                         children: <TextSpan>[
-                          TextSpan(text: '\$220'),
+                          TextSpan(text: '\$${ASLocalProvider.instance.as_dollar_number}'),
                           TextSpan(
                             text: '/\$1000',
                             style: TextStyle(color: '#0A8A33'.color()),
@@ -326,7 +326,7 @@ class ASSuperWinDialogState extends State<ASSuperWinDialog>
                               skColor: '#41740A'.color(),
                             ),
                             ASStrokeText(
-                              text: '\$40.00',
+                              text: '\$${widget.award * 2}',
                               size: 28,
                               color: '#F7FF00'.color(),
                               weight: FontWeight.w900,
@@ -365,7 +365,7 @@ class ASSuperWinDialogState extends State<ASSuperWinDialog>
           bottom: 288.h,
 
           child: ASStrokeText(
-            text: '\$20.23',
+            text: '\$${widget.award}',
 
             size: 48,
 
@@ -413,7 +413,7 @@ class ASSuperWinDialogState extends State<ASSuperWinDialog>
                           color: '#733A1B'.color(),
                         ),
                         children: <TextSpan>[
-                          TextSpan(text: '\$220'),
+                          TextSpan(text: '\$${ASLocalProvider.instance.as_dollar_number}'),
                           TextSpan(
                             text: '/\$1000',
                             style: TextStyle(color: '#0A8A33'.color()),
@@ -546,7 +546,7 @@ class ASJackPotDialogState extends State<ASJackPotDialog>
                               skColor: '#41740A'.color(),
                             ),
                             ASStrokeText(
-                              text: '\$40.00',
+                              text: '\$${0.to2Double(widget.award * 2)}',
                               size: 28,
                               color: '#F7FF00'.color(),
                               weight: FontWeight.w900,
@@ -585,7 +585,7 @@ class ASJackPotDialogState extends State<ASJackPotDialog>
           bottom: 288.h,
 
           child: ASStrokeText(
-            text: '\$20.23',
+            text: '\$${widget.award}',
 
             size: 48,
 
@@ -633,7 +633,7 @@ class ASJackPotDialogState extends State<ASJackPotDialog>
                           color: '#733A1B'.color(),
                         ),
                         children: <TextSpan>[
-                          TextSpan(text: '\$220'),
+                          TextSpan(text: '\$${ASLocalProvider.instance.as_dollar_number}'),
                           TextSpan(
                             text: '/\$1000',
                             style: TextStyle(color: '#0A8A33'.color()),

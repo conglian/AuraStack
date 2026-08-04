@@ -1,0 +1,641 @@
+{
+  "cash_777": {
+    "pop": [
+      43.68,
+      46.32
+    ],
+    "point_7": {
+      "probability": 0.1,
+      "ranges": [
+        {
+          "first_number": 0,
+          "end_number": 200,
+          "reward": [
+            70,
+            80
+          ]
+        },
+        {
+          "first_number": 200,
+          "end_number": 300,
+          "reward": [
+            45,
+            50
+          ]
+        },
+        {
+          "first_number": 300,
+          "end_number": 700,
+          "reward": [
+            42,
+            48
+          ]
+        },
+        {
+          "first_number": 700,
+          "end_number": 1000,
+          "reward": [
+            40,
+            45
+          ]
+        }
+      ]
+    },
+    "point_77": {
+      "probability": 0.2,
+      "ranges": [
+        {
+          "first_number": 0,
+          "end_number": 200,
+          "reward": [
+            40,
+            50
+          ]
+        },
+        {
+          "first_number": 200,
+          "end_number": 300,
+          "reward": [
+            22.5,
+            25
+          ]
+        },
+        {
+          "first_number": 300,
+          "end_number": 700,
+          "reward": [
+            21,
+            24
+          ]
+        },
+        {
+          "first_number": 700,
+          "end_number": 1000,
+          "reward": [
+            20,
+            22.5
+          ]
+        }
+      ]
+    },
+    "point_777": {
+      "probability": 0.5,
+      "ranges": [
+        {
+          "first_number": 0,
+          "end_number": 200,
+          "reward": [
+            29,
+            32
+          ]
+        },
+        {
+          "first_number": 200,
+          "end_number": 300,
+          "reward": [
+            15,
+            16.66
+          ]
+        },
+        {
+          "first_number": 300,
+          "end_number": 700,
+          "reward": [
+            14,
+            16
+          ]
+        },
+        {
+          "first_number": 700,
+          "end_number": 1000,
+          "reward": [
+            13.34,
+            15
+          ]
+        }
+      ]
+    },
+    "null": 0.2,
+    "dice_probability": 0.7
+  },
+  "int_ad": [
+    {
+      "first_number": 0,
+      "point": 0,
+      "end_number": 200
+    },
+    {
+      "first_number": 200,
+      "point": 30,
+      "end_number": 400
+    },
+    {
+      "first_number": 400,
+      "point": 80,
+      "end_number": 700
+    },
+    {
+      "first_number": 700,
+      "point": 100,
+      "end_number": 1000
+    }
+  ],
+  "pigtask_int_ad": [
+    {
+      "first_number": 0,
+      "point": 0,
+      "end_number": 500
+    },
+    {
+      "first_number": 500,
+      "point": 60,
+      "end_number": 1000
+    }
+  ],
+  "extra_bonus": {
+    "pop": [
+      43.68,
+      46.32
+    ],
+    "point": {
+      "probability": 0.8,
+      "ranges": [
+        {
+          "first_number": 0,
+          "end_number": 200,
+          "reward": [
+            70,
+            75
+          ]
+        },
+        {
+          "first_number": 200,
+          "end_number": 300,
+          "reward": [
+            45,
+            50
+          ]
+        },
+        {
+          "first_number": 300,
+          "end_number": 700,
+          "reward": [
+            42,
+            48
+          ]
+        },
+        {
+          "first_number": 700,
+          "end_number": 1000,
+          "reward": [
+            40,
+            45
+          ]
+        }
+      ]
+    },
+    "null": 0.2,
+    "dice_probability": 0.7
+  },
+  "fortune_rush": {
+    "pop": [
+      43.68,
+      46.32
+    ],
+    "point": {
+      "probability": 0.7,
+      "ranges": [
+        {
+          "first_number": 0,
+          "end_number": 200,
+          "reward": [
+            70,
+            75
+          ]
+        },
+        {
+          "first_number": 200,
+          "end_number": 300,
+          "reward": [
+            45,
+            50
+          ]
+        },
+        {
+          "first_number": 300,
+          "end_number": 700,
+          "reward": [
+            42,
+            48
+          ]
+        },
+        {
+          "first_number": 700,
+          "end_number": 1000,
+          "reward": [
+            40,
+            45
+          ]
+        }
+      ]
+    },
+    "null": 0.3,
+    "dice_probability": 0.7
+  },
+  "candy_rush": {
+    "pop": [
+      43.68,
+      46.32
+    ],
+    "point": {
+      "probability": 0.7,
+      "ranges": [
+        {
+          "first_number": 0,
+          "end_number": 200,
+          "reward": [
+            70,
+            75
+          ]
+        },
+        {
+          "first_number": 200,
+          "end_number": 300,
+          "reward": [
+            45,
+            50
+          ]
+        },
+        {
+          "first_number": 300,
+          "end_number": 700,
+          "reward": [
+            42,
+            48
+          ]
+        },
+        {
+          "first_number": 700,
+          "end_number": 1000,
+          "reward": [
+            40,
+            45
+          ]
+        }
+      ]
+    },
+    "null": 0.3,
+    "dice_probability": 0.6
+  },
+  "sweet_time": {
+    "pop": [
+      43.68,
+      46.32
+    ],
+    "point": {
+      "probability": 0.7,
+      "ranges": [
+        {
+          "first_number": 0,
+          "end_number": 200,
+          "reward": [
+            70,
+            75
+          ]
+        },
+        {
+          "first_number": 200,
+          "end_number": 300,
+          "reward": [
+            45,
+            50
+          ]
+        },
+        {
+          "first_number": 300,
+          "end_number": 700,
+          "reward": [
+            42,
+            48
+          ]
+        },
+        {
+          "first_number": 700,
+          "end_number": 1000,
+          "reward": [
+            40,
+            45
+          ]
+        }
+      ]
+    },
+    "null": 0.3,
+    "dice_probability": 0.6
+  },
+  "cash_50x": {
+    "pop": [
+      43.68,
+      46.32
+    ],
+    "point_20x": {
+      "probability": 0.1,
+      "ranges": [
+        {
+          "first_number": 0,
+          "end_number": 200,
+          "reward": [
+            4.3,
+            4.9
+          ]
+        },
+        {
+          "first_number": 200,
+          "end_number": 300,
+          "reward": [
+            2.25,
+            2.5
+          ]
+        },
+        {
+          "first_number": 300,
+          "end_number": 700,
+          "reward": [
+            2.1,
+            2.4
+          ]
+        },
+        {
+          "first_number": 700,
+          "end_number": 1000,
+          "reward": [
+            2,
+            2.25
+          ]
+        }
+      ]
+    },
+    "point_30x": {
+      "probability": 0.2,
+      "ranges": [
+        {
+          "first_number": 0,
+          "end_number": 200,
+          "reward": [
+            2.9,
+            3.3
+          ]
+        },
+        {
+          "first_number": 200,
+          "end_number": 300,
+          "reward": [
+            1.5,
+            1.66
+          ]
+        },
+        {
+          "first_number": 300,
+          "end_number": 700,
+          "reward": [
+            1.4,
+            1.6
+          ]
+        },
+        {
+          "first_number": 700,
+          "end_number": 1000,
+          "reward": [
+            1.34,
+            1.5
+          ]
+        }
+      ]
+    },
+    "point_50x": {
+      "probability": 0.3,
+      "ranges": [
+        {
+          "first_number": 0,
+          "end_number": 200,
+          "reward": [
+            1.7,
+            2
+          ]
+        },
+        {
+          "first_number": 200,
+          "end_number": 300,
+          "reward": [
+            0.9,
+            1
+          ]
+        },
+        {
+          "first_number": 300,
+          "end_number": 700,
+          "reward": [
+            0.84,
+            0.96
+          ]
+        },
+        {
+          "first_number": 700,
+          "end_number": 1000,
+          "reward": [
+            0.8,
+            0.9
+          ]
+        }
+      ]
+    },
+    "null": 0.4,
+    "dice_probability": 0.6
+  },
+  "box_interval": 3,
+  "box_reward": [
+    {
+      "first_number": 0,
+      "end_number": 300,
+      "reward": [
+        45,
+        50
+      ]
+    },
+    {
+      "first_number": 300,
+      "end_number": 700,
+      "reward": [
+        42,
+        48
+      ]
+    },
+    {
+      "first_number": 700,
+      "end_number": 1000,
+      "reward": [
+        40,
+        45
+      ]
+    }
+  ],
+  "daily_pig_task": {
+    "small_reward": [
+      {
+        "first_number": 0,
+        "end_number": 500,
+        "reward": [
+          50
+        ]
+      },
+      {
+        "first_number": 500,
+        "end_number": 1000,
+        "reward": [
+          40
+        ]
+      }
+    ],
+    "big_reward": [
+      {
+        "first_number": 0,
+        "end_number": 500,
+        "reward": [
+          50
+        ]
+      },
+      {
+        "first_number": 500,
+        "end_number": 1000,
+        "reward": [
+          40
+        ]
+      }
+    ]
+  },
+  "dice_award": [
+    {
+      "first_number": 0,
+      "end_number": 300,
+      "reward": [
+        50,
+        40,
+        46,
+        48,
+        49,
+        43,
+        50,
+        44
+      ]
+    },
+    {
+      "first_number": 300,
+      "end_number": 700,
+      "reward": [
+        48,
+        40,
+        45,
+        46,
+        48,
+        42,
+        49,
+        43
+      ]
+    },
+    {
+      "first_number": 700,
+      "end_number": 1000,
+      "reward": [
+        45,
+        40,
+        44,
+        45,
+        46,
+        41,
+        46,
+        43
+      ]
+    }
+  ],
+  "wheel_award": [
+    {
+      "first_number": 0,
+      "end_number": 300,
+      "reward": [
+        45,
+        47,
+        46,
+        49,
+        42,
+        50
+      ]
+    },
+    {
+      "first_number": 300,
+      "end_number": 700,
+      "reward": [
+        43,
+        45,
+        44,
+        47,
+        41,
+        48
+      ]
+    },
+    {
+      "first_number": 700,
+      "end_number": 1000,
+      "reward": [
+        42,
+        43,
+        43,
+        45,
+        40,
+        46
+      ]
+    }
+  ],
+  "bubble_reward": [
+    {
+      "first_number": 0,
+      "end_number": 300,
+      "reward": [
+        45,
+        50
+      ]
+    },
+    {
+      "first_number": 300,
+      "end_number": 700,
+      "reward": [
+        42,
+        48
+      ]
+    },
+    {
+      "first_number": 700,
+      "end_number": 1000,
+      "reward": [
+        40,
+        45
+      ]
+    }
+  ],
+  "withdraw_task": [
+    {
+      "name": "scratch",
+      "num": 10
+    },
+    {
+      "name": "dice",
+      "num": 3
+    },
+    {
+      "name": "spins",
+      "num": 2
+    }
+  ],
+  "cut_in": [
+    5,
+    8
+  ]
+}

@@ -11,6 +11,7 @@ import 'ASBasic/ASLaunch.dart';
 import 'ASTool/ASLogger.dart';
 import 'ASTool/as_LocalProvider.dart';
 import 'ASTool/ASFKManger.dart';
+import 'ASTool/ASGameProgressManager.dart';
 import 'package:spine_flutter/spine_flutter.dart';
 
 Future<void> main() async {
@@ -58,6 +59,7 @@ Future<void> main() async {
   await localStorageProvider.init();
   await trigger.init();
   await ASFKManger().initFKJson();
+  await ASGameProgressManager.instance.initGameProgressJson();
   // 模拟排队完成
   // PSLocalProvider.instance.updateint(PSLocalProvider.instance.ps_quiz_all_numName, 0);
   // PSLocalProvider.instance.updatedouble(PSLocalProvider.instance.ps_pig_level_indexName, 0);
