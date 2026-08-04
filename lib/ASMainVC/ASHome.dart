@@ -263,7 +263,7 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
                           SizedBox(width: 8.w),
                           ASImg(name: 'as_dollar_icon', width: 24, height: 24),
                           ASGradientStrokeText(
-                            text: '7000',
+                            text: '\$80',
                             gradientColors: [
                               '#FFE600'.color(),
                               '#FFFFFF'.color(),
@@ -288,7 +288,7 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
                           SizedBox(width: 2.w),
                           ASImg(name: 'as_home_x_s', width: 24, height: 24),
                           SizedBox(width: 2.w),
-                          ASImg(name: 'as_home_x_n', width: 24, height: 24),
+                          ASImg(name: 'as_home_x_s', width: 24, height: 24),
                           SizedBox(width: 8.w),
                         ],
                       ),
@@ -581,7 +581,7 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
                           SizedBox(width: 8.w),
                           ASImg(name: 'as_dollar_icon', width: 24, height: 24),
                           ASGradientStrokeText(
-                            text: '7000',
+                            text: '\$100',
                             gradientColors: [
                               '#FFE600'.color(),
                               '#FFFFFF'.color(),
@@ -605,7 +605,7 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
                           SizedBox(width: 2.w),
                           ASImg(name: 'as_home_x_s', width: 24, height: 24),
                           SizedBox(width: 2.w),
-                          ASImg(name: 'as_home_x_s', width: 24, height: 24),
+                          ASImg(name: 'as_home_x_n', width: 24, height: 24),
                           SizedBox(width: 8.w),
                         ],
                       ),
