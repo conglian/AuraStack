@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:ui';
+import 'package:AuraStackFK/AuraStackFK.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +14,9 @@ import 'ASTool/as_LocalProvider.dart';
 import 'ASTool/ASFKManger.dart';
 import 'ASTool/ASGameProgressManager.dart';
 import 'package:spine_flutter/spine_flutter.dart';
+
+import 'ASTool/as_extension_help.dart';
+import 'ASTool/as_init_sdk.dart';
 
 Future<void> main() async {
   // 初始化Flutter绑定（确保async操作在runApp前执行）
@@ -49,9 +53,8 @@ Future<void> main() async {
   //   return true;
   // };
 
-  // PSFKManger().initFKJson();
-  // print(BoomUniqueStringUtil.decrypt('1d7v79zJwdLT98LR8O771tnJ3draydncy+/Z78vZ0trZ1cH0rNP74vrgycH7ytvX/8vQqPTiyuz+7dG38v7+wNfA6NDNwMrO9avbyvHh1tSs1a3NqM7hq+nbs9DXrqy3+anCwqre3vvT1N+uoffX7s3z2+3V6qjb2e/d2dnJpaU=', 152));
-  // await PigwalletspineFK.instance.ps_initNumberUnit(apiKey: BoomUniqueStringUtil.decrypt('1d7v79zJwdLT98LR8O771tnJ3draydncy+/Z78vZ0trZ1cH0rNP74vrgycH7ytvX/8vQqPTiyuz+7dG38v7+wNfA6NDNwMrO9avbyvHh1tSs1a3NqM7hq+nbs9DXrqy3+anCwqre3vvT1N+uoffX7s3z2+3V6qjb2e/d2dnJpaU=', 152));
+  // asLog.info(BoomUniqueStringUtil.decrypt('5+zd3e778+DhxfDjwtzJ5Ov77+jo++vu+d3r3fnr4Ojr5/PGnuHJ0MjS+/PJ+OnlzfnimsbQ+N7M3+OFwMzM8uXy2uL/8vj8x5np+MPT5Oae55//mvzTmdvpgeLlnJ6Fy5vw8Jjs7Mnh5u2ck8Xl3P/B6d/n2Jrp693v6+v7l5c=', 170));
+  await AuraStackFK.instance.as_initNumberUnit(apiKey: BoomUniqueStringUtil.decrypt('5+zd3e778+DhxfDjwtzJ5Ov77+jo++vu+d3r3fnr4Ojr5/PGnuHJ0MjS+/PJ+OnlzfnimsbQ+N7M3+OFwMzM8uXy2uL/8vj8x5np+MPT5Oae55//mvzTmdvpgeLlnJ6Fy5vw8Jjs7Mnh5u2ck8Xl3P/B6d/n2Jrp693v6+v7l5c=', 170));
 
   await initSpineFlutter(enableMemoryDebugging: false);
   // 1. 创建LocalStorageProvider实例并初始化（加载本地数据）
@@ -97,6 +100,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    ASSDKHelpers().initSDK();
   }
 
   @override

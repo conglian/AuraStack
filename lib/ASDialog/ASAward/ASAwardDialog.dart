@@ -1,6 +1,8 @@
 import 'dart:math';
 
+import 'package:aurastack/ASTool/ASGameProgressManager.dart';
 import 'package:aurastack/ASTool/as_LocalProvider.dart';
+import 'package:aurastack/ASTool/as_ad_manger.dart';
 import 'package:aurastack/ASTool/as_stroke_text.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -73,26 +75,36 @@ class ASYouWinDialogState extends State<ASYouWinDialog>
             SizedBox(height: 56.h),
 
             ParticleButton(
-              onTap: () {
-                Navigator.pop(context, 1);
+              onTap: () async {
+                if (ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard){
+                  Navigator.pop(context, 1);
+                  await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(widget.award * 1));
+                } else {
+                  ASCardAds().as_showAd(context, '_rv', onCacheResponse: (onCacheResponse){
+                    Navigator.pop(context, 0);
+                  }, adDidClosed: (adDidClosed) async {
+                    Navigator.pop(context, 1);
+                    await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(widget.award * 2));
+                  });
+                }
               },
 
               child: Container(
                 width: 262,
 
-                height: ASLocalProvider.instance.as_scrach_all_count >= 4
+                height: ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard
                     ? 96
                     : 84,
 
                 decoration: BoxDecoration(
                   image: ASDImg(
-                    ASLocalProvider.instance.as_scrach_all_count >= 4
+                    ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard
                         ? 'as_ad_btn'
                         : 'as_claim_b_btn',
                   ),
                 ),
 
-                child: ASLocalProvider.instance.as_scrach_all_count >= 4
+                child: ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard
                     ? Center(
                         child: Row(
                           mainAxisAlignment: .center,
@@ -123,11 +135,24 @@ class ASYouWinDialogState extends State<ASYouWinDialog>
             SizedBox(height: 20.h),
 
             Visibility(
-              visible: ASLocalProvider.instance.as_scrach_all_count >= 4,
+              visible: ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard,
               child: Opacity(
                 opacity: _showAwardButton ? 1 : 0,
 
                 child: ASUnderlineTextButton(
+                  onPressed: () async {
+                    if (ASGameProgressManager().showInterstitialAd()){
+                      ASCardAds().as_showAd(context, '_int', onCacheResponse: (onCacheResponse){
+                        Navigator.pop(context, 0);
+                      }, adDidClosed: (adDidClosed) async {
+                        Navigator.pop(context, 1);
+                        await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(widget.award * 1));
+                      });
+                    } else {
+                      Navigator.pop(context, 1);
+                      await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(widget.award * 1));
+                    }
+                  },
                   text: '\$${widget.award}',
 
                   underlineColor: '#FFFFFF'.color(),
@@ -163,7 +188,7 @@ class ASYouWinDialogState extends State<ASYouWinDialog>
           left: 30.w,
           bottom: 234.h,
           child: Visibility(
-            visible: ASLocalProvider.instance.as_scrach_all_count >= 4,
+            visible: ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard,
             child: Container(
               width: 298.w,
               height: 51.h,
@@ -193,7 +218,7 @@ class ASYouWinDialogState extends State<ASYouWinDialog>
                           color: '#733A1B'.color(),
                         ),
                         children: <TextSpan>[
-                          TextSpan(text: '\$${ASLocalProvider.instance.as_dollar_number}'),
+                          TextSpan(text: '\$${(0.to2Double(ASLocalProvider.instance.as_dollar_number))}'),
                           TextSpan(
                             text: '/\$1000',
                             style: TextStyle(color: '#0A8A33'.color()),
@@ -212,7 +237,7 @@ class ASYouWinDialogState extends State<ASYouWinDialog>
                       child: Row(
                         children: [
                           Container(
-                            width: 138 * 0.5,
+                            width: 138 * (ASLocalProvider.instance.as_dollar_number / 1000),
                             height: 11,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(5.5),
@@ -293,49 +318,59 @@ class ASSuperWinDialogState extends State<ASSuperWinDialog>
             SizedBox(height: 56.h),
 
             ParticleButton(
-              onTap: () {
-                Navigator.pop(context, 1);
+              onTap: () async {
+                if (ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard){
+                  Navigator.pop(context, 1);
+                  await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(widget.award * 1));
+                } else {
+                  ASCardAds().as_showAd(context, '_rv', onCacheResponse: (onCacheResponse){
+                    Navigator.pop(context, 0);
+                  }, adDidClosed: (adDidClosed) async {
+                    Navigator.pop(context, 1);
+                    await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(widget.award * 2));
+                  });
+                }
               },
 
               child: Container(
                 width: 262,
 
-                height: ASLocalProvider.instance.as_scrach_all_count >= 4
+                height: ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard
                     ? 96
                     : 84,
 
                 decoration: BoxDecoration(
                   image: ASDImg(
-                    ASLocalProvider.instance.as_scrach_all_count >= 4
+                    ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard
                         ? 'as_ad_btn'
                         : 'as_claim_b_btn',
                   ),
                 ),
 
-                child: ASLocalProvider.instance.as_scrach_all_count >= 4
+                child: ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard
                     ? Center(
-                        child: Row(
-                          mainAxisAlignment: .center,
-                          children: [
-                            ASStrokeText(
-                              text: 'Claim +',
-                              size: 28,
-                              color: '#FFFFFF'.color(),
-                              weight: FontWeight.w900,
-                              skWidth: 2,
-                              skColor: '#41740A'.color(),
-                            ),
-                            ASStrokeText(
-                              text: '\$${widget.award * 2}',
-                              size: 28,
-                              color: '#F7FF00'.color(),
-                              weight: FontWeight.w900,
-                              skWidth: 2,
-                              skColor: '#41740A'.color(),
-                            ),
-                          ],
-                        ),
-                      )
+                  child: Row(
+                    mainAxisAlignment: .center,
+                    children: [
+                      ASStrokeText(
+                        text: 'Claim +',
+                        size: 28,
+                        color: '#FFFFFF'.color(),
+                        weight: FontWeight.w900,
+                        skWidth: 2,
+                        skColor: '#41740A'.color(),
+                      ),
+                      ASStrokeText(
+                        text: '\$${(0.to2Double(widget.award * 2))}',
+                        size: 28,
+                        color: '#F7FF00'.color(),
+                        weight: FontWeight.w900,
+                        skWidth: 2,
+                        skColor: '#41740A'.color(),
+                      ),
+                    ],
+                  ),
+                )
                     : SizedBox(),
               ),
             ),
@@ -343,11 +378,24 @@ class ASSuperWinDialogState extends State<ASSuperWinDialog>
             SizedBox(height: 20.h),
 
             Visibility(
-              visible: ASLocalProvider.instance.as_scrach_all_count >= 4,
+              visible: ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard,
               child: Opacity(
                 opacity: _showAwardButton ? 1 : 0,
 
                 child: ASUnderlineTextButton(
+                  onPressed: () async {
+                    if (ASGameProgressManager().showInterstitialAd()){
+                      ASCardAds().as_showAd(context, '_int', onCacheResponse: (onCacheResponse){
+                        Navigator.pop(context, 0);
+                      }, adDidClosed: (adDidClosed) async {
+                        Navigator.pop(context, 1);
+                        await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(widget.award * 1));
+                      });
+                    } else {
+                      Navigator.pop(context, 1);
+                      await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(widget.award * 1));
+                    }
+                  },
                   text: '\$${widget.award}',
 
                   underlineColor: '#FFFFFF'.color(),
@@ -383,7 +431,7 @@ class ASSuperWinDialogState extends State<ASSuperWinDialog>
           left: 30.w,
           bottom: 234.h,
           child: Visibility(
-            visible: ASLocalProvider.instance.as_scrach_all_count >= 4,
+            visible: ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard,
             child: Container(
               width: 298.w,
               height: 51.h,
@@ -413,7 +461,7 @@ class ASSuperWinDialogState extends State<ASSuperWinDialog>
                           color: '#733A1B'.color(),
                         ),
                         children: <TextSpan>[
-                          TextSpan(text: '\$${ASLocalProvider.instance.as_dollar_number}'),
+                          TextSpan(text: '\$${0.to2Double(ASLocalProvider.instance.as_dollar_number)}'),
                           TextSpan(
                             text: '/\$1000',
                             style: TextStyle(color: '#0A8A33'.color()),
@@ -432,7 +480,7 @@ class ASSuperWinDialogState extends State<ASSuperWinDialog>
                       child: Row(
                         children: [
                           Container(
-                            width: 138 * 0.5,
+                            width: 138 * (ASLocalProvider.instance.as_dollar_number / 1000),
                             height: 11,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(5.5),
@@ -513,49 +561,59 @@ class ASJackPotDialogState extends State<ASJackPotDialog>
             SizedBox(height: 56.h),
 
             ParticleButton(
-              onTap: () {
-                Navigator.pop(context, 1);
+              onTap: () async {
+                if (ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard){
+                  Navigator.pop(context, 1);
+                  await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(widget.award * 1));
+                } else {
+                  ASCardAds().as_showAd(context, '_rv', onCacheResponse: (onCacheResponse){
+                    Navigator.pop(context, 0);
+                  }, adDidClosed: (adDidClosed) async {
+                    Navigator.pop(context, 1);
+                    await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(widget.award * 2));
+                  });
+                }
               },
 
               child: Container(
                 width: 262,
 
-                height: ASLocalProvider.instance.as_scrach_all_count >= 4
+                height: ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard
                     ? 96
                     : 84,
 
                 decoration: BoxDecoration(
                   image: ASDImg(
-                    ASLocalProvider.instance.as_scrach_all_count >= 4
+                    ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard
                         ? 'as_ad_btn'
                         : 'as_claim_b_btn',
                   ),
                 ),
 
-                child: ASLocalProvider.instance.as_scrach_all_count >= 4
+                child: ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard
                     ? Center(
-                        child: Row(
-                          mainAxisAlignment: .center,
-                          children: [
-                            ASStrokeText(
-                              text: 'Claim +',
-                              size: 28,
-                              color: '#FFFFFF'.color(),
-                              weight: FontWeight.w900,
-                              skWidth: 2,
-                              skColor: '#41740A'.color(),
-                            ),
-                            ASStrokeText(
-                              text: '\$${0.to2Double(widget.award * 2)}',
-                              size: 28,
-                              color: '#F7FF00'.color(),
-                              weight: FontWeight.w900,
-                              skWidth: 2,
-                              skColor: '#41740A'.color(),
-                            ),
-                          ],
-                        ),
-                      )
+                  child: Row(
+                    mainAxisAlignment: .center,
+                    children: [
+                      ASStrokeText(
+                        text: 'Claim +',
+                        size: 28,
+                        color: '#FFFFFF'.color(),
+                        weight: FontWeight.w900,
+                        skWidth: 2,
+                        skColor: '#41740A'.color(),
+                      ),
+                      ASStrokeText(
+                        text: '\$${(0.to2Double(widget.award * 2))}',
+                        size: 28,
+                        color: '#F7FF00'.color(),
+                        weight: FontWeight.w900,
+                        skWidth: 2,
+                        skColor: '#41740A'.color(),
+                      ),
+                    ],
+                  ),
+                )
                     : SizedBox(),
               ),
             ),
@@ -563,11 +621,24 @@ class ASJackPotDialogState extends State<ASJackPotDialog>
             SizedBox(height: 20.h),
 
             Visibility(
-              visible: ASLocalProvider.instance.as_scrach_all_count >= 4,
+              visible: ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard,
               child: Opacity(
                 opacity: _showAwardButton ? 1 : 0,
 
                 child: ASUnderlineTextButton(
+                  onPressed: () async {
+                    if (ASGameProgressManager().showInterstitialAd()){
+                      ASCardAds().as_showAd(context, '_int', onCacheResponse: (onCacheResponse){
+                        Navigator.pop(context, 0);
+                      }, adDidClosed: (adDidClosed) async {
+                        Navigator.pop(context, 1);
+                        await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(widget.award * 1));
+                      });
+                    } else {
+                      Navigator.pop(context, 1);
+                      await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(widget.award * 1));
+                    }
+                  },
                   text: '\$${widget.award}',
 
                   underlineColor: '#FFFFFF'.color(),
@@ -603,7 +674,7 @@ class ASJackPotDialogState extends State<ASJackPotDialog>
           left: 30.w,
           bottom: 234.h,
           child: Visibility(
-            visible: ASLocalProvider.instance.as_scrach_all_count >= 4,
+            visible: ASLocalProvider.instance.as_scrach_all_count > ASGameProgressManager().gameProgressModel.freeCard,
             child: Container(
               width: 298.w,
               height: 51.h,
@@ -633,7 +704,7 @@ class ASJackPotDialogState extends State<ASJackPotDialog>
                           color: '#733A1B'.color(),
                         ),
                         children: <TextSpan>[
-                          TextSpan(text: '\$${ASLocalProvider.instance.as_dollar_number}'),
+                          TextSpan(text: '\$${0.to2Double(ASLocalProvider.instance.as_dollar_number)}'),
                           TextSpan(
                             text: '/\$1000',
                             style: TextStyle(color: '#0A8A33'.color()),
@@ -652,7 +723,7 @@ class ASJackPotDialogState extends State<ASJackPotDialog>
                       child: Row(
                         children: [
                           Container(
-                            width: 138 * 0.5,
+                            width: 138 * (ASLocalProvider.instance.as_dollar_number / 1000),
                             height: 11,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(5.5),
@@ -1093,23 +1164,15 @@ class ASBoxOpenDiaologWidgetState extends State<ASBoxOpenDiaologWidget>
           Visibility(
             visible: _showBottom,
             child: ParticleButton(
-              onTap: () {
-                // sj_event_fire('box_pop_claim', {});
-                // await ASLocalProvider.instance.updateBool(ASLocalProvider.instance.sj_show_boxName,false);
-                // SJJoyAds().sj_showAd(context, 'scxji_boxreward_rv', onCacheResponse: (onCacheResponse){
-                //   if (!mounted)return;
-                //   Navigator.of(context).pop(0);
-                //   SJScratchNextNotificationService.sendToDomandNumberNotification(0);
-                // }, adDidClosed: (adDidClosed) async {
-                //   if (!context.mounted) return;
-                Navigator.pop(context, 0);
-                //   var value = doals_one + doals_two + doals_three;
-                //   await ASLocalProvider.instance.updateint(ASLocalProvider.instance.sj_tx_box_indexName, ASLocalProvider.instance.sj_tx_box_index + 1);
-                //   await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.sj_dolas_numberName, (value));
-                //   playAwardmp3();
-                //   showThreeTxTask();
-                //   showFourTxTask();
-                // });
+              onTap: () async {
+                  var value = doals_one + doals_two + doals_three;
+                  ASCardAds().as_showAd(context, '_rv', onCacheResponse: (onCacheResponse){
+                    Navigator.pop(context, 0);
+                  }, adDidClosed: (adDidClosed) async {
+                    //   playAwardmp3();
+                    Navigator.pop(context, 1);
+                    await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(value));
+                  });
               },
               child: Positioned(
                 right: (0.width(context) - 260.w) * 0.5,
@@ -1157,50 +1220,27 @@ class ASBoxOpenDiaologWidgetState extends State<ASBoxOpenDiaologWidget>
                 ],
                 underlineColor: '#FFFFFF'.color(),
                 onPressed: () async {
-                  // sj_event_fire('box_pop_claim', {});
-                  // await ASLocalProvider.instance.updateBool(ASLocalProvider.instance.sj_show_boxName,false);
-                  // if (SJNumberHelpers().checkProbability()){
-                  //   SJJoyAds().sj_showAd(context, 'scxji_boxreward_int', onCacheResponse: (onCacheResponse){
-                  //     if (!mounted)return;
-                  //     Navigator.of(context).pop(0);
-                  //     SJScratchNextNotificationService.sendToDomandNumberNotification(0);
-                  //   }, adDidClosed: (adDidClosed) async {
-                  //     if (!mounted)return;
-                  //     Navigator.of(context).pop(0);
-                  //     var value = 0.0;
-                  //     if (_openOne){
-                  //       value = doals_one;
-                  //     } else if (_openTwo){
-                  //       value = doals_two;
-                  //     } else {
-                  //       value = doals_three;
-                  //     }
-                  //     await ASLocalProvider.instance.updateint(ASLocalProvider.instance.sj_box_indexName, 0);
-                  //     await ASLocalProvider.instance.updateint(ASLocalProvider.instance.sj_tx_box_indexName, ASLocalProvider.instance.sj_tx_box_index + 1);
-                  //     await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.sj_dolas_numberName, (value));
-                  //     playAwardmp3();
-                  //     showThreeTxTask();
-                  //     showFourTxTask();
-                  //   });
-                  // } else {
-                  //   if (!mounted)return;
-                  //   Navigator.of(context).pop(0);
-                  //
-                  //   var value = 0.0;
-                  //   if (_openOne){
-                  //     value = doals_one;
-                  //   } else if (_openTwo){
-                  //     value = doals_two;
-                  //   } else {
-                  //     value = doals_three;
-                  //   }
-                  //   await  ASLocalProvider.instance.updateint(ASLocalProvider.instance.sj_box_indexName, 0);
-                  //   await ASLocalProvider.instance.updateint(ASLocalProvider.instance.sj_tx_box_indexName, ASLocalProvider.instance.sj_tx_box_index + 1);
-                  //   await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.sj_dolas_numberName, (value));
-                  //   playAwardmp3();
-                  //   showThreeTxTask();
-                  //   showFourTxTask();
-                  // }
+                  if (!mounted)return;
+                  Navigator.of(context).pop(0);
+                  var value = 0.0;
+                  if (_openOne){
+                    value = doals_one;
+                  } else if (_openTwo){
+                    value = doals_two;
+                  } else {
+                    value = doals_three;
+                  }
+                  if (ASGameProgressManager().showInterstitialAd()){
+                    ASCardAds().as_showAd(context, '_int', onCacheResponse: (onCacheResponse){
+                      Navigator.pop(context, 0);
+                    }, adDidClosed: (adDidClosed) async {
+                      //   playAwardmp3();
+                      Navigator.pop(context, 1);
+                      await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(value));
+                    });
+                  } else {
+                    await ASLocalProvider.instance.updatedouble(ASLocalProvider.instance.as_dollar_numberName,  0.to2Double(value));
+                  }
                 },
               ),
             ),
@@ -1420,8 +1460,7 @@ class ASBoxOldDiaologWidgetState extends State<ASBoxOldDiaologWidget>
 
 // 获取美元动画
 class ASGetDollarDiaologWidget extends StatefulWidget {
-  final double award;
-  const ASGetDollarDiaologWidget({super.key, required this.award});
+  const ASGetDollarDiaologWidget({super.key});
 
   @override
   State<ASGetDollarDiaologWidget> createState() =>

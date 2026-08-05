@@ -1,0 +1,27 @@
+plugins {
+    id 'com.android.library'
+}
+
+apply from: 'networks.gradle'
+
+android {
+    if (project.android.hasProperty("namespace")) {
+        namespace "com.thinkup.flutter"
+    }
+    compileSdkVersion 35
+
+    defaultConfig {
+        minSdkVersion 21
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+}
+
+dependencies {
+    compileOnly fileTree(dir: 'libs', include: '*.aar')
+    compileOnly fileTree(dir: 'libs_compile', include: '*.jar')
+    compileOnly 'androidx.annotation:annotation:1.1.0'
+}

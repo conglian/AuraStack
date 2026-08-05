@@ -51,7 +51,74 @@ class ASGameProgressManager {
     }
   }
 
-  /// When [forceWin] is false, the configured probability decides the result.
+  /// 获取显示插屏概率
+  bool showInterstitialAd() {
+    return _shouldShowAdForRanges(gameProgressModel.intAd);
+  }
+
+  /// 获取任务插屏概率
+  bool shouldShowPigTaskInterstitialAd() {
+    return _shouldShowAdForRanges(gameProgressModel.pigtaskIntAd);
+  }
+
+  /// 获取宝箱奖励值
+  double getBoxRewardValue() {
+    final rewardRange = _rewardRangeForBalance(
+      gameProgressModel.boxReward,
+      ASLocalProvider.instance.as_dolas_old_number,
+    );
+    return _randomReward(Random(), rewardRange.reward);
+  }
+
+  /// 获取气泡数值
+  double getBubbleRewardValue() {
+    final rewardRange = _rewardRangeForBalance(
+      gameProgressModel.bubbleReward,
+      ASLocalProvider.instance.as_dolas_old_number,
+    );
+    return _randomReward(Random(), rewardRange.reward);
+  }
+
+  /// 小任务奖励值获取
+  double getSmallTaskRewardValue() {
+    return _singleRewardForBalance(gameProgressModel.dailyPigTask.smallReward);
+  }
+
+  /// 大任务奖励值获取
+  double getBigTaskRewardValue() {
+    return _singleRewardForBalance(gameProgressModel.dailyPigTask.bigReward);
+  }
+
+  bool _shouldShowAdForRanges(List<ASAdProgressRange> ranges) {
+    if (ranges.isEmpty) return false;
+
+    final balance = ASLocalProvider.instance.as_dolas_old_number;
+    var selectedRange = ranges.first;
+    for (final range in ranges) {
+      if (balance >= range.firstNumber) selectedRange = range;
+      if (balance >= range.firstNumber && balance < range.endNumber) {
+        selectedRange = range;
+        break;
+      }
+    }
+
+    final point = selectedRange.point.clamp(0, 100);
+    final randomValue = Random().nextInt(100) + 1;
+    return randomValue <= point;
+  }
+
+  double _singleRewardForBalance(List<ASRewardRange> ranges) {
+    final rewardRange = _rewardRangeForBalance(
+      ranges,
+      ASLocalProvider.instance.as_dolas_old_number,
+    );
+    if (rewardRange.reward.isEmpty) {
+      throw StateError('奖励范围不能为空。');
+    }
+    return rewardRange.reward.first;
+  }
+
+  /// 当 [forceWin] 为 false 时，根据配置的概率决定是否中奖。
   ASExtraBonusResult generateExtraBonusResult(bool forceWin) {
     final random = Random();
     final config = gameProgressModel.extraBonus;
@@ -83,7 +150,7 @@ class ASGameProgressManager {
 
     final rewardRange = _rewardRangeForBalance(
       config.point.ranges,
-      ASLocalProvider.instance.as_dollar_number,
+      ASLocalProvider.instance.as_dolas_old_number,
     );
     final rewardValues = List<double>.generate(
       bottomNumbers.length,
@@ -102,7 +169,7 @@ class ASGameProgressManager {
     );
   }
 
-  /// When [forceWin] is false, the configured probability decides the result.
+  /// 当 [forceWin] 为 false 时，根据配置的概率决定是否中奖。
   ASCandyRushResult generateCandyRushResult(bool forceWin) {
     final random = Random();
     final config = gameProgressModel.candyRush;
@@ -133,7 +200,7 @@ class ASGameProgressManager {
 
     final rewardRange = _rewardRangeForBalance(
       config.point.ranges,
-      ASLocalProvider.instance.as_dollar_number,
+      ASLocalProvider.instance.as_dolas_old_number,
     );
 
     return ASCandyRushResult(
@@ -146,7 +213,7 @@ class ASGameProgressManager {
     );
   }
 
-  /// When [forceWin] is false, the configured probability decides the result.
+  /// 当 [forceWin] 为 false 时，根据配置的概率决定是否中奖。
   ASSweetTimeResult generateSweetTimeResult(bool forceWin) {
     final random = Random();
     final config = gameProgressModel.sweetTime;
@@ -154,21 +221,24 @@ class ASGameProgressManager {
         forceWin || _passesProbability(random, config.point.probability);
     final hasDice = _passesProbability(random, config.diceProbability);
     const groupSizes = <int>[1, 2, 3, 4];
-    final flatNumbers = _uniqueNumbers(random, 10, <int>{});
+    final cellCount = groupSizes.reduce((total, size) => total + size);
 
-    var winningFlatIndex = -1;
-    if (isWinner) {
-      winningFlatIndex = random.nextInt(flatNumbers.length);
-      flatNumbers[winningFlatIndex] = 0;
-    }
+    final winningFlatIndex = isWinner ? random.nextInt(cellCount) : -1;
 
     var diceFlatIndex = -1;
     if (hasDice) {
       final availableIndexes = <int>[
-        for (var index = 0; index < flatNumbers.length; index++)
+        for (var index = 0; index < cellCount; index++)
           if (index != winningFlatIndex) index,
       ];
       diceFlatIndex = availableIndexes[random.nextInt(availableIndexes.length)];
+    }
+
+    final flatNumbers = _uniqueNumbers(random, cellCount, <int>{0, -1});
+    if (winningFlatIndex >= 0) {
+      flatNumbers[winningFlatIndex] = 0;
+    }
+    if (diceFlatIndex >= 0) {
       flatNumbers[diceFlatIndex] = -1;
     }
 
@@ -187,7 +257,7 @@ class ASGameProgressManager {
     final dicePosition = _groupPosition(diceFlatIndex, groupSizes);
     final rewardRange = _rewardRangeForBalance(
       config.point.ranges,
-      ASLocalProvider.instance.as_dollar_number,
+      ASLocalProvider.instance.as_dolas_old_number,
     );
 
     return ASSweetTimeResult(
@@ -229,7 +299,7 @@ class ASGameProgressManager {
     final rewardRange = isWinner
         ? _rewardRangeForBalance(
             _cash777Point(config, winningNumber).ranges,
-            ASLocalProvider.instance.as_dollar_number,
+            ASLocalProvider.instance.as_dolas_old_number,
           ).reward
         : const <double>[30, 50];
     final rewardValues = List<double>.generate(
@@ -253,7 +323,7 @@ class ASGameProgressManager {
     );
   }
 
-  /// The 12 cells are arranged as three columns by four rows.
+  /// 12 个格子按三列四行排列。
   ASFortuneRushResult generateFortuneRushResult(bool forceWin) {
     final random = Random();
     final config = gameProgressModel.fortuneRush;
@@ -285,7 +355,7 @@ class ASGameProgressManager {
 
     final rewardRange = _rewardRangeForBalance(
       config.point.ranges,
-      ASLocalProvider.instance.as_dollar_number,
+      ASLocalProvider.instance.as_dolas_old_number,
     );
     final rewardValues = List<double>.generate(
       4,
@@ -305,25 +375,116 @@ class ASGameProgressManager {
     );
   }
 
+  ASCash50xResult generateCash50xResult(bool forceWin) {
+    final random = Random();
+    final config = gameProgressModel.cash50x;
+    final winningType = _weightedWinningIndex(
+      random,
+      <double>[
+        config.point20x.probability,
+        config.point30x.probability,
+        config.point50x.probability,
+      ],
+      config.nullProbability,
+      forceWin,
+      'cash_50x',
+    );
+    final isWinner = winningType >= 0;
+    final hasDice = _passesProbability(random, config.diceProbability);
+    final bottomNumbers = List<int>.generate(
+      8,
+      (_) => random.nextInt(4),
+      growable: false,
+    );
+
+    var winningIndex = -1;
+    var rewardIndex = -1;
+    if (isWinner) {
+      const winningMarkers = <int>[20, 30, 50];
+      winningIndex = random.nextInt(bottomNumbers.length);
+      rewardIndex = winningIndex;
+      bottomNumbers[winningIndex] = winningMarkers[winningType];
+    }
+
+    var diceIndex = -1;
+    if (hasDice) {
+      final availableIndexes = <int>[
+        for (var index = 0; index < bottomNumbers.length; index++)
+          if (index != winningIndex) index,
+      ];
+      diceIndex = availableIndexes[random.nextInt(availableIndexes.length)];
+      bottomNumbers[diceIndex] = -1;
+    }
+
+    final rewardRange = isWinner
+        ? _rewardRangeForBalance(
+            _cash50xPoint(config, winningType).ranges,
+            ASLocalProvider.instance.as_dolas_old_number,
+          ).reward
+        : const <double>[1, 10];
+    final rewardValues = List<double>.generate(
+      bottomNumbers.length,
+      (_) => _randomReward(random, rewardRange),
+      growable: false,
+    );
+    const multipliers = <int>[20, 30, 50];
+    final winningRewardValue = isWinner
+        ? (rewardValues[rewardIndex] * multipliers[winningType] * 100).round() /
+              100
+        : 0.0;
+    return ASCash50xResult(
+      bottomNumbers: List<int>.unmodifiable(bottomNumbers),
+      rewardValues: List<double>.unmodifiable(rewardValues),
+      winningRewardValue: winningRewardValue,
+      topWinningNumber: isWinner ? winningType + 1 : 0,
+      isWinner: isWinner,
+      hasDice: hasDice,
+      winningIndex: winningIndex,
+      rewardIndex: rewardIndex,
+      diceIndex: diceIndex,
+    );
+  }
+
   int _cash777WinningNumber(
     Random random,
     ASCash777Progress config,
     bool forceWin,
   ) {
-    final winningWeights = <double>[
-      max(0, config.point7.probability).toDouble(),
-      max(0, config.point77.probability).toDouble(),
-      max(0, config.point777.probability).toDouble(),
-    ];
-    final winningWeight = winningWeights.reduce((sum, value) => sum + value);
+    return _weightedWinningIndex(
+      random,
+      <double>[
+        config.point7.probability,
+        config.point77.probability,
+        config.point777.probability,
+      ],
+      config.nullProbability,
+      forceWin,
+      'cash_777',
+    );
+  }
+
+  int _weightedWinningIndex(
+    Random random,
+    List<double> probabilities,
+    double nullProbability,
+    bool forceWin,
+    String configName,
+  ) {
+    final winningWeights = probabilities
+        .map((probability) => max(0, probability).toDouble())
+        .toList(growable: false);
+    final winningWeight = winningWeights.fold<double>(
+      0,
+      (sum, value) => sum + value,
+    );
     if (winningWeight <= 0) {
       if (forceWin) {
-        throw StateError('cash_777 needs at least one winning probability.');
+        throw StateError('$configName needs at least one winning probability.');
       }
       return -1;
     }
 
-    final nullWeight = max(0, config.nullProbability).toDouble();
+    final nullWeight = max(0, nullProbability).toDouble();
     final roll =
         random.nextDouble() *
         (forceWin ? winningWeight : winningWeight + nullWeight);
@@ -350,6 +511,19 @@ class ASGameProgressManager {
         return config.point777;
       default:
         throw RangeError.range(winningNumber, 0, 2, 'winningNumber');
+    }
+  }
+
+  ASProbabilityReward _cash50xPoint(ASCash50xProgress config, int winningType) {
+    switch (winningType) {
+      case 0:
+        return config.point20x;
+      case 1:
+        return config.point30x;
+      case 2:
+        return config.point50x;
+      default:
+        throw RangeError.range(winningType, 0, 2, 'winningType');
     }
   }
 

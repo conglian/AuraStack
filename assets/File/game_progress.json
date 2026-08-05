@@ -451,6 +451,7 @@
     "null": 0.4,
     "dice_probability": 0.6
   },
+  "free_card": 3,
   "box_interval": 3,
   "box_reward": [
     {

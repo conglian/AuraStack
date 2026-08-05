@@ -59,6 +59,11 @@ dependencies:
   audioplayers: ^6.5.0
   spine_flutter: 4.3.6
 
+  thinkup_sdk:
+    path: ASThrid/thinkup_sdk-1.0.15
+  AuraStackFK:
+    path: ASThrid/AuraStackFK
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

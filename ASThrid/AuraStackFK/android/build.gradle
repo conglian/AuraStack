@@ -1,0 +1,63 @@
+group = "com.example.AuraStack"
+version = "1.0"
+
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.6.1")
+    }
+}
+
+rootProject.allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+apply plugin: "com.android.library"
+
+android {
+    namespace = "com.example.AuraStack"
+
+    compileSdk = 35
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    sourceSets {
+        main.jniLibs.srcDirs = ['libs']
+    }
+
+    defaultConfig {
+        minSdk = 21
+        consumerProguardFiles 'proguard-rules.pro'
+    }
+
+    packagingOptions.doNotStrip "*/arm64-v8a/libdu.so"
+    packagingOptions.doNotStrip "*/armeabi-v7a/libdu.so"
+    packagingOptions.doNotStrip "*/x86/libdu.so"
+    packagingOptions.doNotStrip "*/x86_64/libdu.so"
+
+    dependencies {
+        testImplementation("junit:junit:4.13.2")
+        testImplementation("org.mockito:mockito-core:5.0.0")
+        implementation files('libs/du.jar')
+    }
+
+    testOptions {
+        unitTests.all {
+            testLogging {
+               events "passed", "skipped", "failed", "standardOut", "standardError"
+               outputs.upToDateWhen {false}
+               showStandardStreams = true
+            }
+        }
+    }
+}

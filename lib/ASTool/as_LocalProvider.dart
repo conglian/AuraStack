@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'package:aurastack/ASMainVC/ASHome.dart';
 import 'package:aurastack/ASTool/ASLogger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../ASDialog/ASAward/ASAwardDialog.dart';
 import '../main.dart';
 import 'ASTBAEventTool.dart';
 import 'as_extension_help.dart';
@@ -59,6 +61,7 @@ class ASLocalProvider extends ChangeNotifier {
   bool as_first_box_tips = false;
   bool as_first_show_cash = false;
   bool as_first_show_rank = false;
+  bool as_first_show_box = false;
   bool as_open_tx = false;
   bool as_tx_task2_tips = false;
   bool as_last_tx_end = false;
@@ -413,6 +416,7 @@ class ASLocalProvider extends ChangeNotifier {
 
   String get as_dice_indexName => 'as_dice_index';
 
+  String get as_first_show_boxName => 'as_first_show_box';
 
   // 3. 初始化：从本地存储加载数据（组件初始化时调用）
   Future<void> init() async {
@@ -465,6 +469,7 @@ class ASLocalProvider extends ChangeNotifier {
     as_bg_music =  prefs.getBool('as_bg_music') ?? true;
     as_sound_music =  prefs.getBool('as_sound_music') ?? true;
     as_tx_task3_tips =  prefs.getBool('as_tx_task3_tips') ?? false;
+    as_first_show_box =  prefs.getBool('as_first_show_box') ?? false;
     as_tx_task4_tips =  prefs.getBool('as_tx_task4_tips') ?? false;
     as_txing_status =  prefs.getBool('as_txing_status') ?? false;
     as_login_status =  prefs.getBool('as_login_status') ?? false;
@@ -576,10 +581,14 @@ class ASLocalProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     if (key == ASLocalProvider.instance.as_dollar_numberName) {
         // CSNoticeHelp().startSJForegroundService();
+      await prefs.setDouble(key, ASLocalProvider.instance.as_dollar_number + value);
+    } else {
+      await prefs.setDouble(key, value);
     }
     asLog.info("value= $value");
-    await prefs.setDouble(key, value);
     if (key == ASLocalProvider.instance.as_dollar_numberName && value > 0) {
+      // 飞金币动画
+      homeKey!.currentState?.context.tipShow2(ASGetDollarDiaologWidget());
       await prefs.setDouble(as_dolas_old_numberName,  as_dolas_old_number + value);
     }
     if (key == ASLocalProvider.instance.as_dollar_numberName && value > 0){

@@ -12,6 +12,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../ASDialog/ASAward/ASAwardDialog.dart';
+import '../ASTool/ASFKManger.dart';
 import '../ASTool/as_LocalProvider.dart';
 import '../ASTool/as_extension_help.dart';
 import '../ASTool/as_img.dart';
@@ -35,7 +36,7 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-
+    ASFKManger().initFK();
     WidgetsBinding.instance.addPostFrameCallback((_) {});
 
     _shineTimer = Timer.periodic(const Duration(milliseconds: 1200), (_) {
@@ -123,7 +124,7 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
                                         color: '#733A1B'.color(),
                                       ),
                                       children: <TextSpan>[
-                                        TextSpan(text: '\$${provider.as_dollar_number}'),
+                                        TextSpan(text: '\$${0.to2Double(provider.as_dollar_number)}'),
                                         TextSpan(
                                           text: '/\$1000',
                                           style: TextStyle(
@@ -146,7 +147,7 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
                                     child: Row(
                                       children: [
                                         Container(
-                                          width: 138 * 0.5,
+                                          width: 138 * (provider.as_dollar_number / 1000),
                                           height: 11,
                                           decoration: BoxDecoration(
                                             borderRadius: BorderRadius.circular(
@@ -170,7 +171,7 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
                               height: 32,
                             ),
                             onTap: () {
-                              context.tipShow2(ASGetDollarDiaologWidget(award: 20.0));
+                              context.tipShow2(ASGetDollarDiaologWidget());
                             },
                           ),
                           SizedBox(width: 18.w),
@@ -915,7 +916,9 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
                               width: 57,
                               height: 80,
                             ),
-                            onTap: () {},
+                            onTap: () {
+                              context.tipShow2(ASDice());
+                            },
                           ),
                         ],
                       ),

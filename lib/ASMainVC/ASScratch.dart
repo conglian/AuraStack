@@ -8,10 +8,12 @@ import 'package:aurastack/ASTool/ASLocalImageScratchCard.dart';
   import 'package:provider/provider.dart';
   import '../ASDialog/ASAward/ASAwardDialog.dart';
   import '../ASModel/ASGameProgressModel.dart';
+import '../ASTool/ASLogger.dart';
 import '../ASTool/as_LocalProvider.dart';
   import '../ASTool/as_extension_help.dart';
   import '../ASTool/as_img.dart';
   import '../ASTool/as_stroke_text.dart';
+import 'ASDice.dart';
 
   class ASScratch extends StatefulWidget {
     final int type;
@@ -43,6 +45,8 @@ import '../ASTool/as_LocalProvider.dart';
 
     ASFortuneRushResult result5 = ASFortuneRushResult(bottomNumbers: [], rewardValues: [], topWinningNumber: 0, isWinner: false, hasDice: false);
 
+    ASCash50xResult result6 = ASCash50xResult(bottomNumbers: [], rewardValues: [], topWinningNumber: 0, isWinner: false, hasDice: false);
+
     @override
     void initState() {
       super.initState();
@@ -59,15 +63,17 @@ import '../ASTool/as_LocalProvider.dart';
 
     void setResult(){
       if (widget.type == 0){
-        result1 = ASGameProgressManager().generateExtraBonusResult(ASLocalProvider.instance.as_scrach_all_count <= 3);
+        result1 = ASGameProgressManager().generateExtraBonusResult(ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard);
       } else if (widget.type == 1){
-        result2 = ASGameProgressManager().generateCandyRushResult(ASLocalProvider.instance.as_scrach_all_count <= 3);
+        result2 = ASGameProgressManager().generateCandyRushResult(ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard);
       } else if (widget.type == 2){
-        result3 = ASGameProgressManager().generateSweetTimeResult(ASLocalProvider.instance.as_scrach_all_count <= 3);
+        result3 = ASGameProgressManager().generateSweetTimeResult(ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard);
       } else if (widget.type == 3){
-        result4 = ASGameProgressManager().generateCash777Result(ASLocalProvider.instance.as_scrach_all_count <= 3);
+        result4 = ASGameProgressManager().generateCash777Result(ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard);
       } else if (widget.type == 4){
-        result5 = ASGameProgressManager().generateFortuneRushResult(ASLocalProvider.instance.as_scrach_all_count <= 3);
+        result5 = ASGameProgressManager().generateFortuneRushResult(ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard);
+      } else if (widget.type == 5){
+        result6 = ASGameProgressManager().generateCash50xResult(ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard);
       }
     }
 
@@ -99,10 +105,6 @@ import '../ASTool/as_LocalProvider.dart';
         targetBox.localToGlobal(targetBox.size.center(Offset.zero)),
       );
       final imageSize = sourceBox.size;
-
-      setState(() {
-        _hideScratchDice = true;
-      });
 
       _removeDiceFlyOverlay();
       _diceFlyOverlay = OverlayEntry(
@@ -270,7 +272,7 @@ import '../ASTool/as_LocalProvider.dart';
                                       color: '#733A1B'.color(),
                                     ),
                                     children: <TextSpan>[
-                                      TextSpan(text: '\$${provider.as_dollar_number}'),
+                                      TextSpan(text: '\$${0.to2Double(provider.as_dollar_number)}'),
                                       TextSpan(
                                         text: '/\$1000',
                                         style: TextStyle(
@@ -293,7 +295,7 @@ import '../ASTool/as_LocalProvider.dart';
                                   child: Row(
                                     children: [
                                       Container(
-                                        width: 138 * 0.5,
+                                        width: 138 * (provider.as_dollar_number / 1000),
                                         height: 11,
                                         decoration: BoxDecoration(
                                           borderRadius: BorderRadius.circular(
@@ -360,7 +362,9 @@ import '../ASTool/as_LocalProvider.dart';
                               width: 57,
                               height: 80,
                             ),
-                            onTap: () {},
+                            onTap: () {
+                              context.tipShow2(ASDice());
+                            },
                           ),
                         ),
                       ],
@@ -386,8 +390,10 @@ import '../ASTool/as_LocalProvider.dart';
         return swapKey4;
       } else if (widget.type == 4){
         return swapKey5;
-      } else {
+      } else if (widget.type == 5){
         return swapKey6;
+      } else {
+        return swapKey1;
       }
     }
 
@@ -427,9 +433,6 @@ import '../ASTool/as_LocalProvider.dart';
                 if (widget.type != 3 && widget.type != 4 && widget.type != 2 && widget.type != 0)
                   SizedBox(height: 63.h),
                 ASLocalImageScratchCard(autoStartY: getautosctratchTopH(),onScratchEnd: (){
-                  setState(() {
-                    scractch_end_animation = true;
-                  });
                   WidgetsBinding.instance.addPostFrameCallback((_) {
                     if (mounted) _startDiceFlyAnimation();
                   });
@@ -442,10 +445,10 @@ import '../ASTool/as_LocalProvider.dart';
                     ),
                     child: Stack(
                       children: [
-                        getScrachContentWidget(),
                         Visibility(visible: scractch_end_animation && widget.type == 2,child: ASImg(name: 'as_scratch_end_2_bg',
                           width: 361.w,
                           height: 589.h,)),
+                        getScrachContentWidget(),
                         Visibility(visible: !result3.isWinner && scractch_end_animation && widget.type == 2,child: SizedBox(
                           width: 361.w,
                           height: 589.h,
@@ -546,7 +549,7 @@ import '../ASTool/as_LocalProvider.dart';
                       );
                     },
                   ),
-                  Visibility(visible: !result1.isWinner,child: SizedBox(
+                  Visibility(visible: !result1.isWinner && scractch_end_animation,child: SizedBox(
                     width: 311.w,
                     height: 198.h,
                     child: Column(
@@ -625,7 +628,7 @@ import '../ASTool/as_LocalProvider.dart';
                         );
                       },
                     ),
-                    Visibility(visible: !result2.isWinner,child: SizedBox(
+                    Visibility(visible: !result2.isWinner && scractch_end_animation,child: SizedBox(
                       width: 293.w,
                       height: 202.h,
                       child: Column(
@@ -644,341 +647,321 @@ import '../ASTool/as_LocalProvider.dart';
         );
       } else if (widget.type == 2){
         return SizedBox(
-          width: 313.w,
+          width: 331.w,
+          height: 395.h,
           child: Stack(
             children: [
-              Column(
-                crossAxisAlignment: .center,
-                children: [
-                  SizedBox(height: 48.h),
-                  Row(
-                    mainAxisAlignment: .center,
-                    children: [
-                      ASText(text: '\$${result3.topRewardValue}', size: 24, color: '#FFDF27'.color(), weight: FontWeight.w900),
-                    ],
+              Positioned(left: (0.width(context) - 212.w) * 0.5,top: 53.h,child:ASBouncyChild(enableAnimation: scractch_end_animation && result3.isWinner,child: SizedBox(width: 150.w,height: 20.h,child: ASText(text: '\$${result3.topRewardValue}', size: 18, color: '#FFDF27'.color(), weight: FontWeight.w900, align: .center)))),
+              if (result3.bottomNumberGroups.first.first != 0 && result3.bottomNumberGroups.first.first != -1)
+                Positioned(left: (0.width(context) - 100) * 0.5,top: 95.h,child:ASText(text: '${result3.bottomNumberGroups.first.first}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900)),
+              if (result3.bottomNumberGroups.first.first == 0)
+                Positioned(left: (0.width(context) - 93.w) * 0.5,top: 90.h,child: Container(width: 33, height: 33, color: scractch_end_animation ? Colors.transparent : Colors.transparent,child: ASBouncyImage(imagePath: 'as_dangao_icon', width: 33, height: 33, enableAnimation: scractch_end_animation))),
+              if (result3.bottomNumberGroups.first.first == -1)
+                Positioned(left: (0.width(context) - 96.w) * 0.5,top: 84.h,
+                  child: SizedBox(
+                    width: 43,
+                    height: 45,
+                    child: Column(
+                      children: [
+                        Visibility(
+                          visible: !_hideScratchDice,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: Builder(
+                            builder: (diceContext) {
+                              _scratchDiceContext = diceContext;
+                              return SizedBox(
+                                width: 43,
+                                height: 45,
+                                child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 25.h),
-                  Row(
-                    mainAxisAlignment: .center,
-                    children: [
-                      if (result3.bottomNumberGroups.first.first != 0)
-                        ASText(text: '${result3.bottomNumberGroups.first.first}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900),
-                      if (result3.bottomNumberGroups.first.first == 0)
-                        ASBouncyImage(imagePath: 'as_dangao_icon', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                      if (result3.bottomNumberGroups.first.first == -1)
-                        SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Column(
-                            children: [
-                              Visibility(
-                                visible: !_hideScratchDice,
-                                maintainSize: true,
-                                maintainAnimation: true,
-                                maintainState: true,
-                                child: Builder(
-                                  builder: (diceContext) {
-                                    _scratchDiceContext = diceContext;
-                                    return SizedBox(
-                                      width: 43,
-                                      height: 45,
-                                      child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
+                ),
+              if (result3.bottomNumberGroups[1].first != 0 && result3.bottomNumberGroups[1].first != -1)
+                Positioned(left: 116.w,top: 142.h,child:ASText(text: '${result3.bottomNumberGroups[1].first}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900)),
+              if (result3.bottomNumberGroups[1].first == 0)
+                Positioned(left: 114.w,top: 136.h,child: Container(width: 33, height: 33, color: scractch_end_animation ? Colors.transparent : Colors.transparent,child: ASBouncyImage(imagePath: 'as_dangao_icon', width: 33, height: 33, enableAnimation: scractch_end_animation))),
+              if (result3.bottomNumberGroups[1].first == -1)
+                Positioned(left: 110.w,top: 130.h,
+                  child: SizedBox(
+                    width: 43,
+                    height: 45,
+                    child: Column(
+                      children: [
+                        Visibility(
+                          visible: !_hideScratchDice,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: Builder(
+                            builder: (diceContext) {
+                              _scratchDiceContext = diceContext;
+                              return SizedBox(
+                                width: 43,
+                                height: 45,
+                                child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
+                              );
+                            },
                           ),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 27.h),
-                  Row(
-                    mainAxisAlignment: .center,
-                    children: [
-                      if (result3.bottomNumberGroups[1].first != 0)
-                        ASText(text: '${result3.bottomNumberGroups[1].first}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900),
-                      if (result3.bottomNumberGroups[1].first == 0)
-                        ASBouncyImage(imagePath: 'as_dangao_icon', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                      if (result3.bottomNumberGroups[1].first == -1)
-                        SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Column(
-                            children: [
-                              Visibility(
-                                visible: !_hideScratchDice,
-                                maintainSize: true,
-                                maintainAnimation: true,
-                                maintainState: true,
-                                child: Builder(
-                                  builder: (diceContext) {
-                                    _scratchDiceContext = diceContext;
-                                    return SizedBox(
-                                      width: 43,
-                                      height: 45,
-                                      child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
+                ),
+              if (result3.bottomNumberGroups[1].last != 0 && result3.bottomNumberGroups[1].last != -1)
+                Positioned(right: 116.w,top: 142.h,child:ASText(text: '${result3.bottomNumberGroups[1].last}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900)),
+              if (result3.bottomNumberGroups[1].last == 0)
+                Positioned(right: 114.w,top: 136.h,child: Container(width: 33, height: 33, color: scractch_end_animation ? Colors.transparent : Colors.transparent,child: ASBouncyImage(imagePath: 'as_dangao_icon', width: 33, height: 33, enableAnimation: scractch_end_animation))),
+              if (result3.bottomNumberGroups[1].last == -1)
+                Positioned(right: 110.w,top: 130.h,
+                  child: SizedBox(
+                    width: 43,
+                    height: 45,
+                    child: Column(
+                      children: [
+                        Visibility(
+                          visible: !_hideScratchDice,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: Builder(
+                            builder: (diceContext) {
+                              _scratchDiceContext = diceContext;
+                              return SizedBox(
+                                width: 43,
+                                height: 45,
+                                child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
+                              );
+                            },
                           ),
                         ),
-                      SizedBox(width: 38.w),
-                      if (result3.bottomNumberGroups[1].last != 0)
-                        ASText(text: '${result3.bottomNumberGroups[1].last}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900),
-                      if (result3.bottomNumberGroups[1].last == 0)
-                        ASBouncyImage(imagePath: 'as_dangao_icon', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                      if (result3.bottomNumberGroups[1].last == -1)
-                        SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Column(
-                            children: [
-                              Visibility(
-                                visible: !_hideScratchDice,
-                                maintainSize: true,
-                                maintainAnimation: true,
-                                maintainState: true,
-                                child: Builder(
-                                  builder: (diceContext) {
-                                    _scratchDiceContext = diceContext;
-                                    return SizedBox(
-                                      width: 43,
-                                      height: 45,
-                                      child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 27.h),
-                  Row(
-                    mainAxisAlignment: .center,
-                    children: [
-                      if (result3.bottomNumberGroups[2].first != 0)
-                        ASText(text: '${result3.bottomNumberGroups[2].first}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900),
-                      if (result3.bottomNumberGroups[2].first == 0)
-                        ASBouncyImage(imagePath: 'as_dangao_icon', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                      if (result3.bottomNumberGroups[2].first == -1)
-                        SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Column(
-                            children: [
-                              Visibility(
-                                visible: !_hideScratchDice,
-                                maintainSize: true,
-                                maintainAnimation: true,
-                                maintainState: true,
-                                child: Builder(
-                                  builder: (diceContext) {
-                                    _scratchDiceContext = diceContext;
-                                    return SizedBox(
-                                      width: 43,
-                                      height: 45,
-                                      child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
+                ),
+              if (result3.bottomNumberGroups[2].first != 0 && result3.bottomNumberGroups[2].first != -1)
+                Positioned(left: 89.w,top: 187.h,child:ASText(text: '${result3.bottomNumberGroups[2].first}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900)),
+              if (result3.bottomNumberGroups[2].first == 0)
+                Positioned(left: 86.w,top: 181.h,child: Container(width: 33, height: 33, color: scractch_end_animation ? Colors.transparent : Colors.transparent,child: ASBouncyImage(imagePath: 'as_dangao_icon', width: 33, height: 33, enableAnimation: scractch_end_animation))),
+              if (result3.bottomNumberGroups[2].first == -1)
+                Positioned(left: 80.w,top: 178.h,
+                  child: SizedBox(
+                    width: 43,
+                    height: 45,
+                    child: Column(
+                      children: [
+                        Visibility(
+                          visible: !_hideScratchDice,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: Builder(
+                            builder: (diceContext) {
+                              _scratchDiceContext = diceContext;
+                              return SizedBox(
+                                width: 43,
+                                height: 45,
+                                child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
+                              );
+                            },
                           ),
                         ),
-                      SizedBox(width: 38.w),
-                      if (result3.bottomNumberGroups[2][1] != 0)
-                        ASText(text: '${result3.bottomNumberGroups[2][1]}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900),
-                      if (result3.bottomNumberGroups[2][1] == 0)
-                        ASBouncyImage(imagePath: 'as_dangao_icon', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                      if (result3.bottomNumberGroups[2][1] == -1)
-                        SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Column(
-                            children: [
-                              Visibility(
-                                visible: !_hideScratchDice,
-                                maintainSize: true,
-                                maintainAnimation: true,
-                                maintainState: true,
-                                child: Builder(
-                                  builder: (diceContext) {
-                                    _scratchDiceContext = diceContext;
-                                    return SizedBox(
-                                      width: 43,
-                                      height: 45,
-                                      child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      SizedBox(width: 38.w),
-                      if (result3.bottomNumberGroups[2][2] != 0)
-                        ASText(text: '${result3.bottomNumberGroups[2][2]}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900),
-                      if (result3.bottomNumberGroups[2][2] == 0)
-                        ASBouncyImage(imagePath: 'as_dangao_icon', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                      if (result3.bottomNumberGroups[2][2] == -1)
-                        SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Column(
-                            children: [
-                              Visibility(
-                                visible: !_hideScratchDice,
-                                maintainSize: true,
-                                maintainAnimation: true,
-                                maintainState: true,
-                                child: Builder(
-                                  builder: (diceContext) {
-                                    _scratchDiceContext = diceContext;
-                                    return SizedBox(
-                                      width: 43,
-                                      height: 45,
-                                      child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                  SizedBox(height: 34.h),
-                  Row(
-                    mainAxisAlignment: .center,
-                    children: [
-                      if (result3.bottomNumberGroups[3][0] != 0)
-                        ASText(text: '${result3.bottomNumberGroups[3][0]}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900),
-                      if (result3.bottomNumberGroups[3][0] == 0)
-                        ASBouncyImage(imagePath: 'as_dangao_icon', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                      if (result3.bottomNumberGroups[3][0] == -1)
-                        SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Column(
-                            children: [
-                              Visibility(
-                                visible: !_hideScratchDice,
-                                maintainSize: true,
-                                maintainAnimation: true,
-                                maintainState: true,
-                                child: Builder(
-                                  builder: (diceContext) {
-                                    _scratchDiceContext = diceContext;
-                                    return SizedBox(
-                                      width: 43,
-                                      height: 45,
-                                      child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
+                ),
+              if (result3.bottomNumberGroups[2].last != 0 && result3.bottomNumberGroups[2].last != -1)
+                Positioned(right: 89.w,top: 187.h,child:ASText(text: '${result3.bottomNumberGroups[2].last}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900)),
+              if (result3.bottomNumberGroups[2].last == 0)
+                Positioned(right: 86.w,top: 181.h,child: Container(width: 33, height: 33, color: scractch_end_animation ? Colors.transparent : Colors.transparent,child: ASBouncyImage(imagePath: 'as_dangao_icon', width: 33, height: 33, enableAnimation: scractch_end_animation))),
+              if (result3.bottomNumberGroups[2].last == -1)
+                Positioned(right: 80.w,top: 178.h,
+                  child: SizedBox(
+                    width: 43,
+                    height: 45,
+                    child: Column(
+                      children: [
+                        Visibility(
+                          visible: !_hideScratchDice,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: Builder(
+                            builder: (diceContext) {
+                              _scratchDiceContext = diceContext;
+                              return SizedBox(
+                                width: 43,
+                                height: 45,
+                                child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
+                              );
+                            },
                           ),
                         ),
-                      SizedBox(width: 38.w),
-                      if (result3.bottomNumberGroups[3][1] != 0)
-                        ASText(text: '${result3.bottomNumberGroups[3][1]}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900),
-                      if (result3.bottomNumberGroups[3][1] == 0)
-                        ASBouncyImage(imagePath: 'as_dangao_icon', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                      if (result3.bottomNumberGroups[3][1] == -1)
-                        SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Column(
-                            children: [
-                              Visibility(
-                                visible: !_hideScratchDice,
-                                maintainSize: true,
-                                maintainAnimation: true,
-                                maintainState: true,
-                                child: Builder(
-                                  builder: (diceContext) {
-                                    _scratchDiceContext = diceContext;
-                                    return SizedBox(
-                                      width: 43,
-                                      height: 45,
-                                      child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      SizedBox(width: 38.w),
-                      if (result3.bottomNumberGroups[3][2] != 0)
-                        ASText(text: '${result3.bottomNumberGroups[3][2]}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900),
-                      if (result3.bottomNumberGroups[3][2] == 0)
-                        ASBouncyImage(imagePath: 'as_dangao_icon', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                      if (result3.bottomNumberGroups[3][2] == -1)
-                        SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Column(
-                            children: [
-                              Visibility(
-                                visible: !_hideScratchDice,
-                                maintainSize: true,
-                                maintainAnimation: true,
-                                maintainState: true,
-                                child: Builder(
-                                  builder: (diceContext) {
-                                    _scratchDiceContext = diceContext;
-                                    return SizedBox(
-                                      width: 43,
-                                      height: 45,
-                                      child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      SizedBox(width: 38.w),
-                      if (result3.bottomNumberGroups[3][3] != 0)
-                        ASText(text: '${result3.bottomNumberGroups[3][3]}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900),
-                      if (result3.bottomNumberGroups[3][3] == 0)
-                        ASBouncyImage(imagePath: 'as_dangao_icon', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                      if (result3.bottomNumberGroups[3][3] == -1)
-                        SizedBox(
-                          width: 32,
-                          height: 32,
-                          child: Column(
-                            children: [
-                              Visibility(
-                                visible: !_hideScratchDice,
-                                maintainSize: true,
-                                maintainAnimation: true,
-                                maintainState: true,
-                                child: Builder(
-                                  builder: (diceContext) {
-                                    _scratchDiceContext = diceContext;
-                                    return SizedBox(
-                                      width: 43,
-                                      height: 45,
-                                      child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
+                      ],
+                    ),
                   ),
-                ],
-              )
+                ),
+              if (result3.bottomNumberGroups[2][1] != 0 && result3.bottomNumberGroups[2][1] != -1)
+                Positioned(right: (0.width(context) - 82.w) * 0.5,top: 187.h,child:ASText(text: '${result3.bottomNumberGroups[2][1]}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900)),
+              if (result3.bottomNumberGroups[2][1] == 0)
+                Positioned(right: (0.width(context) - 90.w) * 0.5,top: 181.h,child: Container(width: 33, height: 33, color: scractch_end_animation ? Colors.transparent : Colors.transparent,child: ASBouncyImage(imagePath: 'as_dangao_icon', width: 33, height: 33, enableAnimation: scractch_end_animation))),
+              if (result3.bottomNumberGroups[2][1] == -1)
+                Positioned(right: (0.width(context) - 100.w) * 0.5,top: 178.h,
+                  child: SizedBox(
+                    width: 43,
+                    height: 45,
+                    child: Column(
+                      children: [
+                        Visibility(
+                          visible: !_hideScratchDice,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: Builder(
+                            builder: (diceContext) {
+                              _scratchDiceContext = diceContext;
+                              return SizedBox(
+                                width: 43,
+                                height: 45,
+                                child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (result3.bottomNumberGroups[3].first != 0 && result3.bottomNumberGroups[3].first != -1)
+                Positioned(left: 58.w,top: 240.h,child:ASText(text: '${result3.bottomNumberGroups[3].first}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900)),
+              if (result3.bottomNumberGroups[3].first == 0)
+                Positioned(left: 54.w,top: 234.h,child: Container(width: 33, height: 33, color: scractch_end_animation ? Colors.transparent : Colors.transparent,child: ASBouncyImage(imagePath: 'as_dangao_icon', width: 33, height: 33, enableAnimation: scractch_end_animation))),
+              if (result3.bottomNumberGroups[3].first == -1)
+                Positioned(left: 52.w,top: 230.h,
+                  child: SizedBox(
+                    width: 43,
+                    height: 45,
+                    child: Column(
+                      children: [
+                        Visibility(
+                          visible: !_hideScratchDice,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: Builder(
+                            builder: (diceContext) {
+                              _scratchDiceContext = diceContext;
+                              return SizedBox(
+                                width: 43,
+                                height: 45,
+                                child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (result3.bottomNumberGroups[3].last != 0 && result3.bottomNumberGroups[3].last != -1)
+                Positioned(right: 58.w,top: 240.h,child:ASText(text: '${result3.bottomNumberGroups[3].last}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900)),
+              if (result3.bottomNumberGroups[3].last == 0)
+                Positioned(right: 54.w,top: 234.h,child: Container(width: 33, height: 33, color: scractch_end_animation ? Colors.transparent : Colors.transparent,child: ASBouncyImage(imagePath: 'as_dangao_icon', width: 33, height: 33, enableAnimation: scractch_end_animation))),
+              if (result3.bottomNumberGroups[3].last == -1)
+                Positioned(right: 52.w,top: 230.h,
+                  child: SizedBox(
+                    width: 43,
+                    height: 45,
+                    child: Column(
+                      children: [
+                        Visibility(
+                          visible: !_hideScratchDice,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: Builder(
+                            builder: (diceContext) {
+                              _scratchDiceContext = diceContext;
+                              return SizedBox(
+                                width: 43,
+                                height: 45,
+                                child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (result3.bottomNumberGroups[3][1] != 0 && result3.bottomNumberGroups[3][1] != -1)
+                Positioned(left: 118.w,top: 240.h,child:ASText(text: '${result3.bottomNumberGroups[3][1]}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900)),
+              if (result3.bottomNumberGroups[3][1] == 0)
+                Positioned(left: 114.w,top: 234.h,child: Container(width: 33, height: 33, color: scractch_end_animation ? Colors.transparent : Colors.transparent,child: ASBouncyImage(imagePath: 'as_dangao_icon', width: 33, height: 33, enableAnimation: scractch_end_animation))),
+              if (result3.bottomNumberGroups[3][1] == -1)
+                Positioned(left: 110.w,top: 230.h,
+                  child: SizedBox(
+                    width: 43,
+                    height: 45,
+                    child: Column(
+                      children: [
+                        Visibility(
+                          visible: !_hideScratchDice,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: Builder(
+                            builder: (diceContext) {
+                              _scratchDiceContext = diceContext;
+                              return SizedBox(
+                                width: 43,
+                                height: 45,
+                                child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              if (result3.bottomNumberGroups[3][2] != 0 && result3.bottomNumberGroups[3][2] != -1)
+                Positioned(right: 118.w,top: 240.h,child:ASText(text: '${result3.bottomNumberGroups[3][2]}', size: 20, color: '#574D4D'.color(), weight: FontWeight.w900)),
+              if (result3.bottomNumberGroups[3][2] == 0)
+                Positioned(right: 114.w,top: 234.h,child: Container(width: 33, height: 33, color: scractch_end_animation ? Colors.transparent : Colors.transparent,child: ASBouncyImage(imagePath: 'as_dangao_icon', width: 33, height: 33, enableAnimation: scractch_end_animation))),
+              if (result3.bottomNumberGroups[3][2] == -1)
+                Positioned(right: 110.w,top: 230.h,
+                  child: SizedBox(
+                    width: 43,
+                    height: 45,
+                    child: Column(
+                      children: [
+                        Visibility(
+                          visible: !_hideScratchDice,
+                          maintainSize: true,
+                          maintainAnimation: true,
+                          maintainState: true,
+                          child: Builder(
+                            builder: (diceContext) {
+                              _scratchDiceContext = diceContext;
+                              return SizedBox(
+                                width: 43,
+                                height: 45,
+                                child: ASBouncyImage(imagePath: 'as_dice_key', width: 32, height: 32, enableAnimation: scractch_end_animation),
+                              );
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
             ],
           ),
         );
@@ -1050,7 +1033,7 @@ import '../ASTool/as_LocalProvider.dart';
                 },
               ),
             ),
-            Visibility(visible: !result4.isWinner,child: SizedBox(
+            Visibility(visible: !result4.isWinner && scractch_end_animation,child: SizedBox(
               width: 313.w,
               height: 294.h,
               child: Column(
@@ -1167,7 +1150,7 @@ import '../ASTool/as_LocalProvider.dart';
                   )
                 ],
               ),
-              Visibility(visible: !result5.isWinner,child: SizedBox(
+              Visibility(visible: !result5.isWinner && scractch_end_animation,child: SizedBox(
                 width: 313.w,
                 height: 300.h,
                 child: Column(
@@ -1182,16 +1165,16 @@ import '../ASTool/as_LocalProvider.dart';
           ),
         );
       } else if (widget.type == 5){
-        return SizedBox(
+         return SizedBox(
           width: 311.w,
           height: 337.h,
           child: Stack(
             children: [
               Column(
                 children: [
-                  SizedBox(height: scractch_end_animation ? 47.h : 58.h),
-                  Padding(padding: EdgeInsetsGeometry.only(left: 4.w),child: ASImg(name: 'as_scratch_data_top_1', width: scractch_end_animation ? 60.w : 70.w, height: scractch_end_animation ? 60.w : 37.h)),
-                  SizedBox(height: 34.h),
+                  SizedBox(height: result6.isWinner ? 56.h : 48.h),
+                  Padding(padding: EdgeInsetsGeometry.only(left: 4.w),child: ASImg(name: 'as_scratch_data_top_${result6.topWinningNumber}', width: result6.isWinner ? 70.w : 60.h, height:result6.isWinner ? 40.w : 60.w)),
+                  SizedBox(height: result6.isWinner ? 44.h : 32.h),
                   Container(
                     width: 311.w,
                     height: 158.h,
@@ -1215,18 +1198,45 @@ import '../ASTool/as_LocalProvider.dart';
                           mainAxisAlignment: .center,
                           children: [
                             Container(width: 80.w,height: 60.h,decoration: BoxDecoration(
-                                color: index == 1 && scractch_end_animation ? Colors.white : Colors.transparent,
+                                color: index == result6.winningIndex && scractch_end_animation == true ? Colors.white : Colors.transparent,
                                 borderRadius: BorderRadius.circular(8.h)
                             ),child: Column(
                               children: [
                                 SizedBox(height: 8.h),
-                                if (index == 1)
-                                  ASBouncyImage(enableAnimation: scractch_end_animation,imagePath: 'as_scractch_data_5_20', width: 60, height: 32),
-                                if (index != 1)
-                                  ASBouncyImage(enableAnimation: scractch_end_animation,imagePath: 'as_scractch_data_5_3', width: 42, height: 42),
-                                if (index == 1)
+                                if ((20 == result6.bottomNumbers[index] || 30 == result6.bottomNumbers[index] || 50 == result6.bottomNumbers[index]) && result6.bottomNumbers[index] != -1)
+                                  ASBouncyImage(enableAnimation: scractch_end_animation == true && result6.winningIndex == index,imagePath: 'as_scractch_data_5_${result6.bottomNumbers[index]}', width: 60, height: 32),
+                                if (20 != result6.bottomNumbers[index] && 30 != result6.bottomNumbers[index] && 50 != result6.bottomNumbers[index] && result6.bottomNumbers[index] != -1)
+                                  ASBouncyImage(enableAnimation: scractch_end_animation == true && result6.winningIndex == index,imagePath: 'as_scractch_data_5_${result6.bottomNumbers[index]}', width: 42, height: 42),
+                                if (20 == result6.bottomNumbers[index] || 30 == result6.bottomNumbers[index] || 50 == result6.bottomNumbers[index])
                                   SizedBox(height: 8.h),
-                                ASBouncyChild(enableAnimation: scractch_end_animation,child: ASStrokeText(text: '\$30.44', size: 18, color: '#FFFFFF'.color(), weight: FontWeight.w900, skWidth: 2, skColor: '#180D74'.color())),
+                                if (-1 == result6.bottomNumbers[index])
+                                  SizedBox(
+                                    width: (190.w / 3),
+                                    height: (180.w / 4),
+                                    child: Column(
+                                      children: [
+                                        SizedBox(height: 0.h),
+                                        Visibility(
+                                          visible: !_hideScratchDice,
+                                          maintainSize: true,
+                                          maintainAnimation: true,
+                                          maintainState: true,
+                                          child: Builder(
+                                            builder: (diceContext) {
+                                              _scratchDiceContext = diceContext;
+                                              return SizedBox(
+                                                width: 44,
+                                                height: 48,
+                                                child: ASBouncyImage(imagePath: 'as_dice_key', width: 43, height: 45, enableAnimation: scractch_end_animation),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                if (-1 != result6.bottomNumbers[index])
+                                  ASBouncyChild(enableAnimation: scractch_end_animation == true && result6.winningIndex == index,child: ASStrokeText(text: '\$${result6.rewardValues[index]}', size: 18, color:scractch_end_animation && result6.winningIndex == index ? '#FFE100'.color() : '#FFFFFF'.color(), weight: FontWeight.w900, skWidth: 2, skColor:scractch_end_animation && result6.winningIndex == index ? '#180D74'.color() : '#180D74'.color())),
                               ],
                             ))
                           ],
@@ -1236,7 +1246,7 @@ import '../ASTool/as_LocalProvider.dart';
                   )
                 ],
               ),
-              Visibility(visible: scractch_end_animation,child: SizedBox(
+              Visibility(visible: !result6.isWinner && scractch_end_animation == true,child: SizedBox(
                 width: 313.w,
                 height: 337.h,
                 child: Column(
@@ -1256,13 +1266,14 @@ import '../ASTool/as_LocalProvider.dart';
     }
 
     Future<void> scrachEndDialog() async {
+      await Future.delayed(const Duration(milliseconds: 300));
+      setState(() {
+        scractch_end_animation = true;
+        _hideScratchDice = true;
+      });
       await ASLocalProvider.instance.updateint(ASLocalProvider.instance.as_scrach_all_countName, ASLocalProvider.instance.as_scrach_all_count + 1);
       Future.delayed(Duration(milliseconds: 2000),() async {
-        if (!mounted) return;
-        setState(() {
-          scractch_end_animation = false;
-        });
-        ASScratchUpdateNotificationService.sendToDomandNumberNotification(0);
+        showAwardDialog();
         if (widget.type == 0){
           swapKey1.currentState?.runSwap(getScrachCardBg());
         } else if (widget.type == 1){
@@ -1276,52 +1287,69 @@ import '../ASTool/as_LocalProvider.dart';
         } else if (widget.type == 5){
           swapKey6.currentState?.runSwap(getScrachCardBg());
         }
-        showAwardDialog();
-        await Future.delayed(const Duration(milliseconds: 50));
+        if (widget.type == 0){
+          result1 = ASGameProgressManager().generateExtraBonusResult(ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard);
+        } else if (widget.type == 1){
+          result2 = ASGameProgressManager().generateCandyRushResult(ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard);
+        } else if (widget.type == 2){
+          result3 = ASGameProgressManager().generateSweetTimeResult(ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard);
+        } else if (widget.type == 3){
+          result4 = ASGameProgressManager().generateCash777Result(ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard);
+        } else if (widget.type == 4){
+          result5 = ASGameProgressManager().generateFortuneRushResult(ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard);
+        } else if (widget.type == 5){
+          result6 = ASGameProgressManager().generateCash50xResult(ASLocalProvider.instance.as_scrach_all_count <= ASGameProgressManager().gameProgressModel.freeCard);
+        }
+        await Future.delayed(const Duration(milliseconds: 200));
+        ASScratchUpdateNotificationService.sendToDomandNumberNotification(0);
         setState(() {
-          if (widget.type == 0){
-            result1 = ASGameProgressManager().generateExtraBonusResult(ASLocalProvider.instance.as_scrach_all_count <= 3);
-          } else if (widget.type == 1){
-            result2 = ASGameProgressManager().generateCandyRushResult(ASLocalProvider.instance.as_scrach_all_count <= 3);
-          } else if (widget.type == 2){
-            result3 = ASGameProgressManager().generateSweetTimeResult(ASLocalProvider.instance.as_scrach_all_count <= 3);
-          } else if (widget.type == 3){
-            result4 = ASGameProgressManager().generateCash777Result(ASLocalProvider.instance.as_scrach_all_count <= 3);
-          } else if (widget.type == 4){
-            result5 = ASGameProgressManager().generateFortuneRushResult(ASLocalProvider.instance.as_scrach_all_count <= 3);
-          }
+          scractch_end_animation = false;
+          _hideScratchDice = false;
         });
       });
     }
 
-    void showAwardDialog(){
+    Future<void> showAwardDialog() async {
       double award = 0.0;
       bool isWin = false;
       List<double> pop = [];
+      bool hasDice = false;
       if (widget.type == 0){
         isWin = result1.isWinner;
+        hasDice = result1.hasDice;
         award = result1.isWinner
             ? result1.rewardValues[result1.winningBottomIndex]
             : 0.0;
         pop = ASGameProgressManager().gameProgressModel.extraBonus.pop;
       } else if (widget.type == 1){
         isWin = result2.isWinner;
+        hasDice = result2.hasDice;
         award = result2.topRewardValue;
         pop = ASGameProgressManager().gameProgressModel.candyRush.pop;
       } else if (widget.type == 2){
         isWin = result3.isWinner;
+        hasDice = result3.hasDice;
         award = result3.topRewardValue;
         pop = ASGameProgressManager().gameProgressModel.sweetTime.pop;
       } else if (widget.type == 3){
         isWin = result4.isWinner;
+        hasDice = result4.hasDice;
         award = result4.winningRewardValue;
         pop = ASGameProgressManager().gameProgressModel.cash777.pop;
       } else if (widget.type == 4){
         isWin = result5.isWinner;
+        hasDice = result5.hasDice;
         award = result5.isWinner
             ? result5.rewardValues[result5.rewardIndex]
             : 0.0;
         pop = ASGameProgressManager().gameProgressModel.fortuneRush.pop;
+      } else if (widget.type == 5){
+        isWin = result6.isWinner;
+        hasDice = result6.hasDice;
+        award = result6.isWinner
+            ? result6.winningRewardValue
+            : 0.0;
+        pop = ASGameProgressManager().gameProgressModel.cash50x.pop;
       }
       if (isWin == true){
         if (award < pop.first){
@@ -1331,6 +1359,9 @@ import '../ASTool/as_LocalProvider.dart';
         } else {
           showJackPot(award);
         }
+      }
+      if (hasDice){
+        await ASLocalProvider.instance.updateint(ASLocalProvider.instance.as_dice_numberName, ASLocalProvider.instance.as_dice_number + 1);
       }
     }
 

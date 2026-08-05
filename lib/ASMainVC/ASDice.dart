@@ -161,6 +161,7 @@ class ASDiceState extends State<ASDice> with TickerProviderStateMixin {
   Future<void> _moveStep(int step) async {
     for (int i = 0; i < step; i++) {
       if (_selectIndex >= 0) {
+        if (!mounted) return;
         setState(() {});
       }
 

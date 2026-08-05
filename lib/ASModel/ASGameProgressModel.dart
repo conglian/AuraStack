@@ -14,6 +14,7 @@ class ASGameProgressModel {
   final ASStandardGameProgress sweetTime;
   @JsonKey(name: 'cash_50x')
   final ASCash50xProgress cash50x;
+  final int freeCard;
   final int boxInterval;
   final List<ASRewardRange> boxReward;
   final ASDailyPigTaskProgress dailyPigTask;
@@ -32,6 +33,7 @@ class ASGameProgressModel {
     this.candyRush = const ASStandardGameProgress(),
     this.sweetTime = const ASStandardGameProgress(),
     this.cash50x = const ASCash50xProgress(),
+    this.freeCard = 0,
     this.boxInterval = 0,
     this.boxReward = const <ASRewardRange>[],
     this.dailyPigTask = const ASDailyPigTaskProgress(),
@@ -304,6 +306,30 @@ class ASFortuneRushResult {
     required this.topWinningNumber,
     required this.isWinner,
     required this.hasDice,
+    this.winningIndex = -1,
+    this.rewardIndex = -1,
+    this.diceIndex = -1,
+  });
+}
+
+class ASCash50xResult {
+  final List<int> bottomNumbers;
+  final List<double> rewardValues;
+  final double winningRewardValue;
+  final int topWinningNumber;
+  final bool isWinner;
+  final bool hasDice;
+  final int winningIndex;
+  final int rewardIndex;
+  final int diceIndex;
+
+  const ASCash50xResult({
+    required this.bottomNumbers,
+    required this.rewardValues,
+    required this.topWinningNumber,
+    required this.isWinner,
+    required this.hasDice,
+    this.winningRewardValue = 0,
     this.winningIndex = -1,
     this.rewardIndex = -1,
     this.diceIndex = -1,

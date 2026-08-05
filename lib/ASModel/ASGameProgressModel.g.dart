@@ -42,6 +42,7 @@ ASGameProgressModel _$ASGameProgressModelFromJson(Map<String, dynamic> json) =>
           ? const ASCash50xProgress()
           : ASCash50xProgress.fromJson(
               json['cash_50x'] as Map<String, dynamic>),
+      freeCard: (json['free_card'] as num?)?.toInt() ?? 0,
       boxInterval: (json['box_interval'] as num?)?.toInt() ?? 0,
       boxReward: (json['box_reward'] as List<dynamic>?)
               ?.map((e) => ASRewardRange.fromJson(e as Map<String, dynamic>))
@@ -85,6 +86,7 @@ Map<String, dynamic> _$ASGameProgressModelToJson(
       'candy_rush': instance.candyRush.toJson(),
       'sweet_time': instance.sweetTime.toJson(),
       'cash_50x': instance.cash50x.toJson(),
+      'free_card': instance.freeCard,
       'box_interval': instance.boxInterval,
       'box_reward': instance.boxReward.map((e) => e.toJson()).toList(),
       'daily_pig_task': instance.dailyPigTask.toJson(),

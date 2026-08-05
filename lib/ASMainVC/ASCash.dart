@@ -70,7 +70,7 @@ class ASCashState extends State<ASCash>
                       ],
                     ),
                     SizedBox(height: 100.h,),
-                    ASGradientNumberRoller(value: provider.as_dollar_number, fontSize: 64, duration: 2),
+                    ASGradientNumberRoller(value: 0.to2Double(provider.as_dollar_number), fontSize: 64, duration: 2),
                     SizedBox(height: 80.h),
                     getWidtNomale(provider),
                     Visibility(child: SizedBox(height: 20.h,)),

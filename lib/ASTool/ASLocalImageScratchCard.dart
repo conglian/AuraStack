@@ -567,10 +567,13 @@ class _ASCardSwapAnimatorState extends State<ASCardSwapAnimator>
 
   @override void didUpdateWidget(ASCardSwapAnimator oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // 当外部 child 改变时，如果没有正在动画，需要更新 _current
-    if (oldWidget.child != widget.child && _next == null) {
+    if (oldWidget.child != widget.child) {
       setState(() {
-        _current = widget.child;
+        if (_next != null) {
+          _next = widget.child;
+        } else {
+          _current = widget.child;
+        }
       });
     }
   }
