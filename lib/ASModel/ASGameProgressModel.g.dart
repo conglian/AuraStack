@@ -73,6 +73,7 @@ ASGameProgressModel _$ASGameProgressModelFromJson(Map<String, dynamic> json) =>
               ?.map((e) => (e as num).toInt())
               .toList() ??
           const <int>[],
+      open_area: (json['open_area'] as num?)?.toDouble() ?? 0.5,
     );
 
 Map<String, dynamic> _$ASGameProgressModelToJson(
@@ -95,6 +96,7 @@ Map<String, dynamic> _$ASGameProgressModelToJson(
       'bubble_reward': instance.bubbleReward.map((e) => e.toJson()).toList(),
       'withdraw_task': instance.withdrawTask.map((e) => e.toJson()).toList(),
       'cut_in': instance.cutIn,
+      'open_area': instance.open_area,
     };
 
 ASAdProgressRange _$ASAdProgressRangeFromJson(Map<String, dynamic> json) =>

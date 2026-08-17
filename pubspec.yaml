@@ -63,6 +63,8 @@ dependencies:
     path: ASThrid/thinkup_sdk-1.0.15
   AuraStackFK:
     path: ASThrid/AuraStackFK
+  flutter_local_notifications:
+    path: ASThrid/common_notifications-master
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -103,7 +105,6 @@ flutter:
     - assets/spine/fortunerush/
     - assets/spine/jackpot/
     - assets/spine/securemoney/
-    - assets/spine/shouzhi/
     - assets/spine/superwin/
     - assets/spine/sweettime/
     - assets/spine/treasure/

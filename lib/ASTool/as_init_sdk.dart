@@ -22,6 +22,7 @@ import 'as_ad_manger.dart';
 import 'as_extension_help.dart';
 import 'ASFKManger.dart';
 import 'ASTBAEventTool.dart';
+import 'ASTrackEvent.dart';
 import 'as_LocalProvider.dart';
 
 String decsgerew(String st) => utf8.decode(base64Decode(st));
@@ -46,7 +47,7 @@ class ASSDKHelpers {
   Future<void> initSDK() async {
     _initAdjustSDk();
     _initTopon();
-    // _asinitloadFireBase();
+    _asinitloadFireBase();
   }
 
   void _initTopon() async {
@@ -58,7 +59,7 @@ class ASSDKHelpers {
             appidkeyStr: 'ac29096fc124ea560c685e0d632afbd56',
           )
           .then((value) {
-            as_event_fire('ad_initsuc', {
+            as_event_fire(ASTrackEvent.adInitSuccess, {
               'ad_source_client': 'topon',
               'ad_init_time': DateTime.now()
                   .difference(sj_topon_start)
@@ -106,7 +107,7 @@ class ASSDKHelpers {
         );
       }
       if (attributionChangedData.trackerName != null) {
-        as_event_fire('adjust_suc', {
+        as_event_fire(ASTrackEvent.adjustSuccess, {
           'adjust_user': attributionChangedData.trackerName == 'Organic'
               ? 0
               : 1,
@@ -144,7 +145,7 @@ class ASSDKHelpers {
       }
     };
     Adjust.initSdk(config);
-    as_event_fire('adjust_req', {});
+    as_event_fire(ASTrackEvent.adjustRequest, {});
   }
 
   void _asinitloadFireBase() async {
@@ -187,31 +188,16 @@ class ASSDKHelpers {
         }
       }
 
-      //  'c152pig_android_fb=默认'.log();
-      //  PSFacebookAnalytics.init(appId: '3083467831849635', clientToken: '7d8a9303f209a20ddf9213b726a897af', appName: 'C152GP');
 
-      // final c152pig_android_fb =
-      // remoteConfig.getValue("c152pig_android_fb").asString();
-      // // facebook_init
-      // if (c152pig_android_fb != ''){
-      //   "app firebase remoteconfig c152pig_android_fb data $c152pig_android_fb".log();
-      //   Map<String, dynamic> jsonMap = json.decode(c152pig_android_fb);
-      //   PSFacebookAnalytics.init(appId: jsonMap['app_id'], clientToken: jsonMap['client_token'], appName: jsonMap['app_name']);
-      // } else {
-      //   'c152pig_android_fb=默认'.log();
-      //   PSFacebookAnalytics.init(appId: '3083467831849635', clientToken: '7d8a9303f209a20ddf9213b726a897af', appName: 'C152GP');
-      // }
-
-
-      final c153_risk_control = remoteConfig.getValue('c153_risk_control').asString();
-      if (c153_risk_control != ''){
+      final c170_risk_control = remoteConfig.getValue('c170_risk_control').asString();
+      if (c170_risk_control != ''){
         try {
-          Map<String, dynamic> jsonMap = json.decode(c153_risk_control);
+          Map<String, dynamic> jsonMap = json.decode(c170_risk_control);
           var fkModel = ASFkModel.fromJson(jsonMap);
           ASFKManger().fkModel = fkModel;
-          asLog.success("app firebase remoteconfig c153_risk_control data $jsonMap");
+          asLog.success("app firebase remoteconfig c170_risk_control data $jsonMap");
         } catch (error) {
-          asLog.error("app firebase remoteconfig c153_risk_control error ${error}");
+          asLog.error("app firebase remoteconfig c170_risk_control error ${error}");
         }
       }
 

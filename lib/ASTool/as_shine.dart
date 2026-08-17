@@ -81,20 +81,20 @@ class _ASShineState extends State<ASShine>
                 colors: const [
                   Colors.transparent,
                   Colors.transparent,
-                  Colors.white70,
-                  Colors.white,
-                  Colors.white70,
+                  Color(0x52FFFFFF),
+                  Color(0xCCFFFFFF),
+                  Color(0x52FFFFFF),
                   Colors.transparent,
                   Colors.transparent,
                 ],
 
                 stops: const [
                   0,
-                  0.42,
+                  0.45,
                   0.48,
                   0.5,
                   0.52,
-                  0.58,
+                  0.55,
                   1,
                 ],
 

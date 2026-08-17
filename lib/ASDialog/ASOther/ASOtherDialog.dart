@@ -1,6 +1,8 @@
 import 'dart:math';
 
+import 'package:app_settings/app_settings.dart';
 import 'package:aurastack/ASTool/as_LocalProvider.dart';
+import 'package:aurastack/ASTool/as_ad_manger.dart';
 import 'package:aurastack/ASTool/as_extension_help.dart';
 import 'package:aurastack/ASTool/as_img.dart';
 import 'package:aurastack/ASTool/as_shine.dart';
@@ -11,7 +13,12 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../ASTool/ASAudioUtils.dart';
+import '../../ASTool/ASTBAEventTool.dart';
+import '../../ASTool/ASTrackEvent.dart';
+import '../../ASTool/as_WebKitView.dart';
 import '../../ASTool/as_stroke_text.dart';
 
 enum ToolType { notice, nowifi, loadfaild, limted }
@@ -78,7 +85,6 @@ class ASDialogTool {
   }
 }
 
-
 // 广告上线/无网/加载失败/通知
 class ASToolDialog extends StatefulWidget {
   final ToolType type;
@@ -94,9 +100,39 @@ class ASToolDialogState extends State<ASToolDialog>
   late AnimationController _scaleController;
   late Animation<double> _scaleAnimation;
 
+  Future<void> _openNotificationSettings() async {
+    try {
+      await AppSettings.openAppSettings(type: AppSettingsType.notification);
+      as_event_fire(ASTrackEvent.notificationConfirmSuccess, {});
+      final prefs = await SharedPreferences.getInstance();
+      if (!(prefs.getBool('as_notification_permission_rewarded') ?? false)) {
+        await ASLocalProvider.instance.updatedouble(
+          ASLocalProvider.instance.as_dollar_numberName,
+          10,
+        );
+        await prefs.setBool('as_notification_permission_rewarded', true);
+      }
+    } catch (_) {
+      as_event_fire(ASTrackEvent.notificationConfirmFail, {});
+    }
+  }
+
   @override
   void initState() {
     super.initState();
+    switch (widget.type) {
+      case ToolType.loadfaild:
+        as_event_fire(ASTrackEvent.adRetry, {});
+        ASAudioUtils().playErrorCommonAudio();
+      case ToolType.nowifi:
+        as_event_fire(ASTrackEvent.networkNo, {});
+        ASAudioUtils().playErrorCommonAudio();
+      case ToolType.notice:
+        as_event_fire(ASTrackEvent.notificationConfirmPopup, {});
+      case ToolType.limted:
+        as_event_fire(ASTrackEvent.seeYouTomorrow, {});
+        ASAudioUtils().playErrorCommonAudio();
+    }
 
     _scaleController = AnimationController(
       vsync: this,
@@ -136,6 +172,9 @@ class ASToolDialogState extends State<ASToolDialog>
                     ),
                   ),
                   onTap: () {
+                    if (widget.type == .notice) {
+                      as_event_fire(ASTrackEvent.notificationConfirmSkip, {});
+                    }
                     Navigator.pop(context, 0);
                   },
                 ),
@@ -181,22 +220,60 @@ class ASToolDialogState extends State<ASToolDialog>
               ),
             ),
             SizedBox(height: 27.h),
-            ParticleButton(
-              onTap: () {
-                Navigator.pop(context, 0);
-              },
-              child: Container(
-                width: 287,
-                height: 55,
-                decoration: BoxDecoration(image: ASDImg('as_yellow_btn_bg')),
-                child: Center(
-                  child: ASText(
-                    text: getBtnName(),
-                    size: 24,
-                    color: '#5C300E'.color(),
-                    weight: FontWeight.w600,
+            SizedBox(
+              width: 287,
+              height: 55,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Positioned.fill(
+                    child: ParticleButton(
+                      onTap: () async {
+                        if (widget.type == .loadfaild) {
+                          as_event_fire(ASTrackEvent.adRetryClick, {});
+                        } else if (widget.type == .nowifi) {
+                          as_event_fire(ASTrackEvent.networkNoClick, {});
+                        } else if (widget.type == .notice) {
+                          as_event_fire(
+                            ASTrackEvent.notificationConfirmAllow,
+                            {},
+                          );
+                          await _openNotificationSettings();
+                        }
+                        if (!context.mounted) return;
+                        Navigator.pop(context, 0);
+                      },
+                      child: Container(
+                        decoration: BoxDecoration(
+                          image: ASDImg('as_yellow_btn_bg'),
+                        ),
+                        child: Center(
+                          child: ASText(
+                            text: getBtnName(),
+                            size: 24,
+                            color: '#5C300E'.color(),
+                            weight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
+                  if (widget.type != .limted)
+                    Positioned(
+                      right: -8,
+                      top: 16,
+                      child: IgnorePointer(
+                        child: ScaleTransition(
+                          scale: _scaleAnimation,
+                          child: ASImg(
+                            name: 'cs_tap_icon',
+                            width: 93,
+                            height: 98,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ),
             Visibility(
@@ -211,23 +288,13 @@ class ASToolDialogState extends State<ASToolDialog>
                 underlineColor: '#CEC4D5'.color(),
                 fontSize: 16,
                 onPressed: () {
+                  as_event_fire(ASTrackEvent.notificationConfirmSkip, {});
                   Navigator.pop(context, 0);
                 },
               ),
             ),
             SizedBox(height: 88.h),
           ],
-        ),
-        Visibility(
-          visible: widget.type != .limted,
-          child: Positioned(
-            right: 30.w,
-            bottom: 220.h,
-            child: ScaleTransition(
-              scale: _scaleAnimation,
-              child: ASImg(name: 'cs_tap_icon', width: 93, height: 98),
-            ),
-          ),
         ),
       ],
     );
@@ -303,6 +370,7 @@ class ASWaitDialogState extends State<ASWaitDialog>
   @override
   void initState() {
     super.initState();
+    as_event_fire(ASTrackEvent.exitPopup, {});
   }
 
   @override
@@ -349,7 +417,7 @@ class ASWaitDialogState extends State<ASWaitDialog>
                       ),
                     ],
                   ),
-                  SizedBox(height: 35.h),
+                  SizedBox(height: 20.h),
                   Row(
                     children: [
                       SizedBox(width: 25.w),
@@ -371,11 +439,14 @@ class ASWaitDialogState extends State<ASWaitDialog>
                   SizedBox(height: 15.h),
                   ParticleButton(
                     onTap: () {
+                      as_event_fire(ASTrackEvent.exitPopupClick, {
+                        'types': 'keep',
+                      });
                       Navigator.pop(context, 0);
                     },
                     child: Container(
-                      width: 339,
-                      height: 55,
+                      width: 339.w,
+                      height: 55.h,
                       decoration: BoxDecoration(image: ASDImg('as_zi_btn_bg')),
                       child: Center(
                         child: ASText(
@@ -394,7 +465,10 @@ class ASWaitDialogState extends State<ASWaitDialog>
                     textColor: '#65576F'.color(),
                     underlineColor: '#65576F'.color(),
                     onPressed: () {
-                      SystemNavigator.pop();
+                      as_event_fire(ASTrackEvent.exitPopupClick, {
+                        'types': 'exit',
+                      });
+                      Navigator.pop(context, 1);
                     },
                   ),
                 ],
@@ -434,120 +508,136 @@ class ASFristAwardDialogState extends State<ASFristAwardDialog>
 
   @override
   Widget build(BuildContext context) {
-    return ParticleButton(
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: () {
         Navigator.pop(context, 1);
       },
-      child: Stack(
-        children: [
-          Positioned(
-            left: 16.w,
-            top: 48.h,
-            child: Container(
-              width: 298.w,
-              height: 51.h,
-              decoration: BoxDecoration(image: ASDImg('as_top_bg')),
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: 13.w,
-                    top: 10,
-                    child: ASImg(name: 'as_dollar_icon', width: 38, height: 32),
-                  ),
-                  Positioned(
-                    right: 10.w,
-                    top: 9,
-                    child: ASImg(name: 'as_pp_0', width: 82, height: 32),
-                  ),
-                  Positioned(
-                    left: 50.w,
-                    top: 9,
-                    child: RichText(
-                      textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: TextStyle(
-                          fontSize: 14.0,
-                          fontWeight: FontWeight.w900,
-                          fontFamily: text_fontName,
-                          color: '#733A1B'.color(),
-                        ),
-                        children: <TextSpan>[
-                          TextSpan(
-                            text:
-                                '\$${ASLocalProvider.instance.as_dollar_number}',
-                          ),
-                          TextSpan(
-                            text: '/\$1000',
-                            style: TextStyle(color: '#0A8A33'.color()),
-                          ),
-                        ],
+      child: SizedBox(
+        width: 0.width(context),
+        height: 0.height(context),
+        child: Stack(
+          children: [
+            Positioned(
+              left: 16.w,
+              top: 48.h,
+              child: Container(
+                width: 298.w,
+                height: 51.h,
+                decoration: BoxDecoration(image: ASDImg('as_top_bg')),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      left: 13.w,
+                      top: 10,
+                      child: ASImg(
+                        name: 'as_dollar_icon',
+                        width: 38,
+                        height: 32,
                       ),
                     ),
-                  ),
-                  Positioned(
-                    left: 50.w,
-                    bottom: 22,
-                    child: Container(
-                      width: 138,
-                      height: 11,
-                      decoration: BoxDecoration(image: ASDImg('as_home_pro_1')),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 138 * 0.5,
-                            height: 11,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(5.5),
-                              color: '#FFEE38'.color(),
+                    Positioned(
+                      right: 10.w,
+                      top: 9.h,
+                      child: ASImg(
+                        name:
+                            'as_pp_${ASLocalProvider.instance.as_tx_ing_account}',
+                        width: 82,
+                        height: 32,
+                      ),
+                    ),
+                    Positioned(
+                      left: 50.w,
+                      top: 9.h,
+                      child: RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 14.0,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: text_fontName,
+                            color: '#733A1B'.color(),
+                          ),
+                          children: <TextSpan>[
+                            TextSpan(
+                              text:
+                                  '\$${ASLocalProvider.instance.as_dollar_number}',
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Positioned(
-            left: 56.w,
-            top: 110.h,
-            child: Container(
-              width: 265,
-              height: 89,
-              decoration: BoxDecoration(image: ASDImg('as_doaller_bgs')),
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: 24.w,
-                    top: 50,
-                    child: RichText(
-                      textAlign: TextAlign.center,
-                      text: TextSpan(
-                        style: TextStyle(
-                          fontSize: 18.0,
-                          fontWeight: FontWeight.w900,
-                          fontFamily: text_fontName,
-                          color: '#DC2918'.color(),
+                            TextSpan(
+                              text: '/\$1000',
+                              style: TextStyle(color: '#0A8A33'.color()),
+                            ),
+                          ],
                         ),
-                        children: <TextSpan>[
-                          TextSpan(
-                            text:
-                                '\$${ASLocalProvider.instance.as_dollar_number}',
-                          ),
-                          TextSpan(
-                            text: ' Stored In Account. ',
-                            style: TextStyle(color: '#240B4F'.color()),
-                          ),
-                        ],
                       ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      left: 53.w,
+                      bottom: 12.h,
+                      child: Container(
+                        width: 138,
+                        height: 11,
+                        decoration: BoxDecoration(
+                          image: ASDImg('as_home_pro_1'),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 138 * 0.5,
+                              height: 11,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(5.5),
+                                color: '#FFEE38'.color(),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
+            Positioned(
+              left: 56.w,
+              top: 110.h,
+              child: Container(
+                width: 265,
+                height: 89,
+                decoration: BoxDecoration(image: ASDImg('as_doaller_bgs')),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      left: 24.w,
+                      top: 50,
+                      child: RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          style: TextStyle(
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.w900,
+                            fontFamily: text_fontName,
+                            color: '#DC2918'.color(),
+                          ),
+                          children: <TextSpan>[
+                            TextSpan(
+                              text:
+                                  '\$${ASLocalProvider.instance.as_dollar_number}',
+                            ),
+                            TextSpan(
+                              text: ' Stored In Account. ',
+                              style: TextStyle(color: '#240B4F'.color()),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -567,7 +657,7 @@ class ASYunying1DialogState extends State<ASYunying1Dialog>
 
   late final Animation<Offset> _leftAnimation;
   late final Animation<Offset> _rightAnimation;
-  late Route _route;
+  late Route<dynamic> _route;
 
   @override
   void initState() {
@@ -590,15 +680,11 @@ class ASYunying1DialogState extends State<ASYunying1Dialog>
 
     _controller.forward();
 
-    // 2秒后关闭当前页面
+    // 精确移除当前弹窗路由，避免被其他弹窗覆盖时永久留在路由栈中。
     Future.delayed(const Duration(seconds: 2), () {
       if (!mounted) return;
-
-      final navigator = Navigator.of(context);
-
-      // 当前 route 仍然在栈里才关闭
-      if (_route.isCurrent) {
-        navigator.pop(0);
+      if (_route.isActive) {
+        Navigator.of(context).removeRoute(_route, 1);
       }
     });
   }
@@ -624,12 +710,12 @@ class ASYunying1DialogState extends State<ASYunying1Dialog>
           top: 392.h,
           child: SlideTransition(
             position: _rightAnimation,
-            child: ASImg(name: 'as_right_icons', width: 363, height: 96),
+            child: ASImg(name: 'as_right_icons', width: 363, height: 110),
           ),
         ),
         Positioned(
           left: 0,
-          top: 294.h,
+          top: 254.h,
           child: SlideTransition(
             position: _leftAnimation,
             child: ASImg(name: 'as_left_icons', width: 362, height: 158),
@@ -695,7 +781,8 @@ class ASyunying2DialogState extends State<ASyunying2Dialog>
                   children: <TextSpan>[
                     TextSpan(text: 'Your game was a success! To send your '),
                     TextSpan(
-                      text: '\$20 ',
+                      text:
+                          '\$${0.to2Double(ASLocalProvider.instance.as_dollar_number)} ',
                       style: TextStyle(color: '#FFE100'.color()),
                     ),
                     TextSpan(
@@ -741,7 +828,7 @@ class ASyunying2DialogState extends State<ASyunying2Dialog>
   }
 }
 
-// 运营3
+// 运营5-提现信息填写
 class ASyunying3Dialog extends StatefulWidget {
   const ASyunying3Dialog({super.key});
 
@@ -749,7 +836,259 @@ class ASyunying3Dialog extends StatefulWidget {
   State<ASyunying3Dialog> createState() => ASyunying3DialogState();
 }
 
-class ASyunying3DialogState extends State<ASyunying3Dialog>
+class ASyunying3DialogState extends State<ASyunying3Dialog> {
+  final TextEditingController _accountController = TextEditingController();
+  int _selectedPlatform = 0;
+  bool _isSubmitting = false;
+
+  bool get _canConfirm =>
+      _accountController.text.trim().isNotEmpty && !_isSubmitting;
+
+  String get _accountLabel => _selectedPlatform == 0 ? 'Account' : 'Phone';
+
+  String get _accountHint => _selectedPlatform == 0
+      ? 'Please enter your PayPal email'
+      : 'Please enter your 10-digit phone number';
+
+  String get _paymentTip => _selectedPlatform == 0
+      ? 'Direct To Your Paypal Instant Payment'
+      : 'Direct To Your Cash Instant Payment';
+
+  @override
+  void initState() {
+    super.initState();
+    _accountController.addListener(_refreshConfirmButton);
+  }
+
+  @override
+  void dispose() {
+    _accountController
+      ..removeListener(_refreshConfirmButton)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _refreshConfirmButton() {
+    if (mounted) setState(() {});
+  }
+
+  void _selectPlatform(int platform) {
+    if (_selectedPlatform == platform) return;
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _selectedPlatform = platform;
+      _accountController.clear();
+    });
+  }
+
+  bool _isValidAccount(String value) {
+    if (_selectedPlatform == 1) {
+      return RegExp(r'^\d{10}$').hasMatch(value);
+    }
+    return RegExp(
+      r"^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$",
+    ).hasMatch(value);
+  }
+
+  Future<void> _confirm() async {
+    if (!_canConfirm) return;
+    final account = _accountController.text.trim();
+    if (!_isValidAccount(account)) {
+      _accountController.clear();
+      ASDialogTool.toast(context, 'The format you entered is incorrect.');
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+    final provider = ASLocalProvider.instance;
+    await provider.updateint(provider.as_tx_ing_accountName, _selectedPlatform);
+    await provider.updateint(
+      provider.as_account_seled_indexName,
+      _selectedPlatform,
+    );
+    await provider.updateString(provider.as_account_idName, account);
+    as_event_fire(ASTrackEvent.withdrawalInformation, {});
+    if (!context.mounted) return;
+    Navigator.pop(context, 1);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isPhone = _selectedPlatform == 1;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SingleChildScrollView(
+          physics: const ClampingScrollPhysics(),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Row(
+                  children: [
+                    const Spacer(),
+                    ParticleButton(
+                      onTap: () => Navigator.pop(context, 0),
+                      child: SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: Center(
+                          child: ASImg(
+                            name: 'as_close_w',
+                            width: 18,
+                            height: 18,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 32.w),
+                  ],
+                ),
+                SizedBox(height: 12.h),
+                Container(
+                  width: 347,
+                  height: 430,
+                  decoration: BoxDecoration(image: ASDImg('as_tx_fa_bg')),
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 20),
+                      ASText(
+                        text: 'Payment Information',
+                        size: 20,
+                        color: '#FFFFFF'.color(),
+                        weight: FontWeight.w700,
+                      ),
+                      const SizedBox(height: 45),
+                      ParticleButton(
+                        onTap: () => _selectPlatform(0),
+                        child: ASImg(
+                          name:
+                              'as_act_0_${_selectedPlatform == 0 ? 's' : 'n'}',
+                          width: 253,
+                          height: 60,
+                        ),
+                      ),
+                      const SizedBox(height: 15),
+                      ParticleButton(
+                        onTap: () => _selectPlatform(1),
+                        child: ASImg(
+                          name:
+                              'as_act_1_${_selectedPlatform == 1 ? 's' : 'n'}',
+                          width: 253,
+                          height: 60,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: 287,
+                        child: ASText(
+                          text: _accountLabel,
+                          size: 14,
+                          color: '#000000'.color(),
+                          weight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        width: 287,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: '#E3E3E3'.color(),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: TextField(
+                          key: ValueKey(
+                            'withdrawal-account-$_selectedPlatform',
+                          ),
+                          controller: _accountController,
+                          keyboardType: isPhone
+                              ? TextInputType.phone
+                              : TextInputType.emailAddress,
+                          inputFormatters: isPhone
+                              ? [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                  LengthLimitingTextInputFormatter(10),
+                                ]
+                              : null,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: Color(0xFF000000),
+                            fontSize: 14,
+                          ),
+                          decoration: InputDecoration(
+                            hintText: _accountHint,
+                            hintStyle: TextStyle(
+                              color: '#ACACAC'.color(),
+                              fontSize: 13,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      SizedBox(
+                        width: 287,
+                        child: ASText(
+                          text: _paymentTip,
+                          size: 12,
+                          color: '#4A474B'.color(),
+                          weight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 27.h),
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _canConfirm ? _confirm : null,
+                  child: Container(
+                    width: 287,
+                    height: 55,
+                    alignment: Alignment.center,
+                    decoration: _canConfirm
+                        ? BoxDecoration(image: ASDImg('as_yellow_btn_bg'))
+                        : BoxDecoration(
+                            color: '#9B9B9B'.color(),
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                    child: ASText(
+                      text: 'Confirm',
+                      size: 24,
+                      color: _canConfirm
+                          ? '#5C300E'.color()
+                          : '#D8D8D8'.color(),
+                      weight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                SizedBox(height: 50.h),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+// 运营6-阶段收益
+class ASyunying3ProgressDialog extends StatefulWidget {
+  const ASyunying3ProgressDialog({super.key});
+
+  @override
+  State<ASyunying3ProgressDialog> createState() =>
+      ASyunying3ProgressDialogState();
+}
+
+class ASyunying3ProgressDialogState extends State<ASyunying3ProgressDialog>
     with TickerProviderStateMixin {
   late AnimationController _noticeController;
 
@@ -762,6 +1101,7 @@ class ASyunying3DialogState extends State<ASyunying3Dialog>
   @override
   void initState() {
     super.initState();
+    as_event_fire(ASTrackEvent.remindPopup, {});
 
     _noticeController = AnimationController(
       vsync: this,
@@ -822,14 +1162,14 @@ class ASyunying3DialogState extends State<ASyunying3Dialog>
                       );
                     },
                     child: Container(
-                      width: 227.w,
-                      height: 29.h,
+                      width: 277.w,
+                      height: 32.h,
                       decoration: BoxDecoration(image: ASDImg('as_yunying3_0')),
                       child: Stack(
                         children: [
                           Positioned(
                             left: 38.w,
-                            top: 7,
+                            top: 5.h,
                             child: RichText(
                               textAlign: TextAlign.center,
                               text: TextSpan(
@@ -871,14 +1211,14 @@ class ASyunying3DialogState extends State<ASyunying3Dialog>
                     },
 
                     child: Container(
-                      width: 227.w,
-                      height: 29.h,
+                      width: 277.w,
+                      height: 32.h,
                       decoration: BoxDecoration(image: ASDImg('as_yunying3_1')),
                       child: Stack(
                         children: [
                           Positioned(
                             left: 38.w,
-                            top: 7,
+                            top: 5.h,
                             child: RichText(
                               textAlign: TextAlign.center,
                               text: TextSpan(
@@ -944,18 +1284,19 @@ class ASyunying3DialogState extends State<ASyunying3Dialog>
               child: Stack(
                 children: [
                   Positioned(
-                    left: 37.w,
-                    top: 54.h,
+                    left: 37,
+                    top: 62,
                     child: ASText(
-                      text: '\$${ASLocalProvider.instance.as_dollar_number}',
+                      text:
+                          '\$${0.to2Double(ASLocalProvider.instance.as_dollar_number)}',
                       size: 48,
                       color: '#FFFFFF'.color(),
                       weight: FontWeight.w700,
                     ),
                   ),
                   Positioned(
-                    left: 34.w,
-                    top: 140.h,
+                    left: 34,
+                    top: 160,
                     child: ASImg(
                       name: 'as_yunying3_line',
                       width: 18,
@@ -963,19 +1304,19 @@ class ASyunying3DialogState extends State<ASyunying3Dialog>
                     ),
                   ),
                   Positioned(
-                    left: 60.w,
-                    top: 174.h,
+                    left: 60,
+                    top: 200,
                     child: ASText(
                       text:
-                          'Just \$${1000 - ASLocalProvider.instance.as_dollar_number} away from payout!',
+                          'Just \$${0.to2Double(1000 - ASLocalProvider.instance.as_dollar_number)} away from payout!',
                       size: 14,
                       color: '#B11212'.color(),
                       weight: FontWeight.w600,
                     ),
                   ),
                   Positioned(
-                    left: 60.w,
-                    top: 140.h,
+                    left: 60,
+                    top: 160,
                     child: ASText(
                       text: 'Submit payment information',
                       size: 14,
@@ -984,8 +1325,8 @@ class ASyunying3DialogState extends State<ASyunying3Dialog>
                     ),
                   ),
                   Positioned(
-                    left: 60.w,
-                    top: 204.h,
+                    left: 60,
+                    top: 238,
                     child: ASText(
                       text: 'Revenue received',
                       size: 14,
@@ -994,10 +1335,11 @@ class ASyunying3DialogState extends State<ASyunying3Dialog>
                     ),
                   ),
                   Positioned(
-                    left: 13.w,
-                    bottom: 14.h,
+                    left: 15,
+                    bottom: 20,
                     child: ParticleButton(
                       onTap: () {
+                        as_event_fire(ASTrackEvent.remindPopupClick, {});
                         Navigator.pop(context, 1);
                       },
                       child: Container(
@@ -1021,100 +1363,105 @@ class ASyunying3DialogState extends State<ASyunying3Dialog>
               ),
             ),
             SizedBox(height: 34.h),
-            Container(
-              width: 339.w,
-              height: 120.h,
-              decoration: BoxDecoration(image: ASDImg('as_yunying3_bottom')),
-              child: Stack(
-                children: [
-                  Column(
-                    children: [
-                      SizedBox(height: 15.h),
-                      Row(
-                        children: [
-                          SizedBox(width: 14.w),
-                          ASText(
-                            text: '\$ 1000',
-                            size: 32,
-                            color: '#1C4779'.color(),
-                            weight: FontWeight.w600,
-                          ),
-                          Spacer(),
-                          ParticleButton(
-                            child: Container(
-                              width: 119,
-                              height: 33,
-                              decoration: BoxDecoration(
-                                image: ASDImg('as_zi_s_btn'),
-                              ),
-                              child: Center(
-                                child: ASText(
-                                  text: 'Cash Out',
-                                  size: 16,
-                                  color: '#FFFFFF'.color(),
-                                  weight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                            onTap: () {},
-                          ),
-                          SizedBox(width: 14.w),
-                        ],
-                      ),
-                      SizedBox(height: 8.h),
-                      Container(
-                        width: 304.w,
-                        height: 16.h,
-                        decoration: BoxDecoration(
-                          color: '#C0BFCA'.color(),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Stack(
+            Visibility(
+              visible: false,
+              child: Container(
+                width: 339.w,
+                height: 120.h,
+                decoration: BoxDecoration(image: ASDImg('as_yunying3_bottom')),
+                child: Stack(
+                  children: [
+                    Column(
+                      children: [
+                        SizedBox(height: 15.h),
+                        Row(
                           children: [
-                            Positioned(
-                              left: 2.w,
-                              top: 2.h,
+                            SizedBox(width: 14.w),
+                            ASText(
+                              text: '\$ 1000',
+                              size: 32,
+                              color: '#1C4779'.color(),
+                              weight: FontWeight.w600,
+                            ),
+                            Spacer(),
+                            ParticleButton(
                               child: Container(
-                                width:
-                                    300.w *
-                                    (ASLocalProvider.instance.as_dollar_number /
-                                        1000),
-                                height: 12.h,
+                                width: 119,
+                                height: 33,
                                 decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(6.h),
-                                  color: '#4045D8'.color(),
+                                  image: ASDImg('as_zi_s_btn'),
+                                ),
+                                child: Center(
+                                  child: ASText(
+                                    text: 'Cash Out',
+                                    size: 16,
+                                    color: '#FFFFFF'.color(),
+                                    weight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
+                              onTap: () {},
                             ),
-                            Center(
-                              child: ASStrokeText(
-                                text:
-                                    '${((ASLocalProvider.instance.as_dollar_number / 1000) * 100).toInt()}%',
-                                size: 12,
-                                color: '#FFD000'.color(),
-                                weight: FontWeight.w600,
-                                skWidth: 1,
-                                skColor: '#000000'.color(),
+                            SizedBox(width: 14.w),
+                          ],
+                        ),
+                        SizedBox(height: 8.h),
+                        Container(
+                          width: 304.w,
+                          height: 16.h,
+                          decoration: BoxDecoration(
+                            color: '#C0BFCA'.color(),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Stack(
+                            children: [
+                              Positioned(
+                                left: 2.w,
+                                top: 2.h,
+                                child: Container(
+                                  width:
+                                      300.w *
+                                      (ASLocalProvider
+                                              .instance
+                                              .as_dollar_number /
+                                          1000),
+                                  height: 12.h,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(6.h),
+                                    color: '#4045D8'.color(),
+                                  ),
+                                ),
                               ),
+                              Center(
+                                child: ASStrokeText(
+                                  text:
+                                      '${((ASLocalProvider.instance.as_dollar_number / 1000) * 100).toInt()}%',
+                                  size: 12,
+                                  color: '#FFD000'.color(),
+                                  weight: FontWeight.w600,
+                                  skWidth: 1,
+                                  skColor: '#000000'.color(),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: 12.h),
+                        Row(
+                          children: [
+                            SizedBox(width: 20.w),
+                            ASText(
+                              text: 'Accumulate \$1000 to cash out.',
+                              size: 12,
+                              color: '#4A474B'.color(),
+                              weight: FontWeight.w200,
                             ),
                           ],
                         ),
-                      ),
-                      SizedBox(height: 12.h),
-                      Row(
-                        children: [
-                          SizedBox(width: 20.w),
-                          ASText(
-                            text: 'Accumulate \$1000 to cash out.',
-                            size: 12,
-                            color: '#4A474B'.color(),
-                            weight: FontWeight.w200,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -1124,7 +1471,7 @@ class ASyunying3DialogState extends State<ASyunying3Dialog>
   }
 }
 
-// 运营4
+// 提现申请
 class ASyunying4Dialog extends StatefulWidget {
   const ASyunying4Dialog({super.key});
 
@@ -1136,10 +1483,14 @@ class ASyunying4DialogState extends State<ASyunying4Dialog>
     with TickerProviderStateMixin {
   late final AnimationController _rotateController;
   late final AnimationController _progressController;
+  bool _isLoadingAd = false;
+  bool _progressCompleted = false;
+  bool _isTransitioning = false;
 
   @override
   void initState() {
     super.initState();
+    as_event_fire(ASTrackEvent.paymentApplication, {});
 
     // 无限旋转
     _rotateController = AnimationController(
@@ -1147,11 +1498,58 @@ class ASyunying4DialogState extends State<ASyunying4Dialog>
       duration: const Duration(seconds: 1),
     )..repeat();
 
-    // 12 秒进度
-    _progressController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 12),
-    )..forward();
+    // 25秒进度
+    _progressController =
+        AnimationController(vsync: this, duration: const Duration(seconds: 25))
+          ..addStatusListener((status) {
+            if (status != AnimationStatus.completed) return;
+            _progressCompleted = true;
+            if (!_isLoadingAd) {
+              _enterNextDialog();
+            }
+          })
+          ..forward();
+  }
+
+  Future<void> _enterNextDialog() async {
+    if (_isTransitioning || !mounted) return;
+    _isTransitioning = true;
+    final navigator = Navigator.of(context);
+    navigator.pop(1);
+  }
+
+  void _skipWithRewardAd() {
+    if (_isLoadingAd || _isTransitioning) return;
+    setState(() {
+      _isLoadingAd = true;
+    });
+    as_event_fire(ASTrackEvent.paymentApplicationClick, {});
+    ASCardAds().as_showAd(
+      context,
+      ASTrackEvent.withdrawalApplyRewarded,
+      onCacheResponse: (_) {
+        if (!mounted) return;
+        setState(() {
+          _isLoadingAd = false;
+        });
+        if (_progressCompleted) {
+          _enterNextDialog();
+        }
+      },
+      adDidClosed: (success) async {
+        if (!mounted) return;
+        if (success) {
+          await _enterNextDialog();
+          return;
+        }
+        setState(() {
+          _isLoadingAd = false;
+        });
+        if (_progressCompleted) {
+          await _enterNextDialog();
+        }
+      },
+    );
   }
 
   @override
@@ -1169,24 +1567,24 @@ class ASyunying4DialogState extends State<ASyunying4Dialog>
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              children: [
-                const Spacer(),
-                ParticleButton(
-                  child: SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: Center(
-                      child: ASImg(name: 'as_close_w', width: 18, height: 18),
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context, 0);
-                  },
-                ),
-                SizedBox(width: 32.w),
-              ],
-            ),
+            // Row(
+            //   children: [
+            //     const Spacer(),
+            //     ParticleButton(
+            //       child: SizedBox(
+            //         width: 40,
+            //         height: 40,
+            //         child: Center(
+            //           child: ASImg(name: 'as_close_w', width: 18, height: 18),
+            //         ),
+            //       ),
+            //       onTap: () {
+            //         Navigator.pop(context, 0);
+            //       },
+            //     ),
+            //     SizedBox(width: 32.w),
+            //   ],
+            // ),
             SizedBox(height: 41.h),
 
             /// 无限旋转
@@ -1197,7 +1595,7 @@ class ASyunying4DialogState extends State<ASyunying4Dialog>
 
             SizedBox(height: 51.h),
 
-            /// 12 秒进度条
+            /// 25秒进度条
             Container(
               width: 217,
               height: 16,
@@ -1255,16 +1653,14 @@ class ASyunying4DialogState extends State<ASyunying4Dialog>
             SizedBox(height: 57.h),
 
             ParticleButton(
-              onTap: () {
-                Navigator.pop(context, 1);
-              },
+              onTap: _skipWithRewardAd,
               child: Container(
                 width: 287,
                 height: 55,
                 decoration: BoxDecoration(image: ASDImg('as_yellow_s_bg')),
                 child: Center(
                   child: ASText(
-                    text: 'Skip Now',
+                    text: _isLoadingAd ? 'Loading...' : 'Skip Now',
                     size: 24,
                     color: '#5C300E'.color(),
                     weight: FontWeight.w600,
@@ -1276,8 +1672,8 @@ class ASyunying4DialogState extends State<ASyunying4Dialog>
         ),
 
         Positioned(
-          right: 58.w,
-          bottom: 224.h,
+          right: 38.w,
+          bottom: 225.h,
           child: ASImg(name: 'as_ads_icon', width: 47, height: 47),
         ),
       ],
@@ -1285,7 +1681,7 @@ class ASyunying4DialogState extends State<ASyunying4Dialog>
   }
 }
 
-// 运营5
+// 申请成功
 class ASyunying5Dialog extends StatefulWidget {
   const ASyunying5Dialog({super.key});
 
@@ -1389,7 +1785,7 @@ class ASyunying5DialogState extends State<ASyunying5Dialog>
   }
 }
 
-// 运营6
+// 翻卡
 class ASyunying6Dialog extends StatefulWidget {
   const ASyunying6Dialog({super.key});
 
@@ -1399,31 +1795,16 @@ class ASyunying6Dialog extends StatefulWidget {
 
 class ASyunying6DialogState extends State<ASyunying6Dialog>
     with TickerProviderStateMixin {
-  /// 三张牌当前位置
-  final List<int> _positions = [0, 1, 2];
-
-  /// 三个位置横坐标
-  late List<double> _cardX;
-
-  /// 当前是否开始动画
+  /// 当前是否正在翻牌
   bool _isOpening = false;
 
-  /// 中间牌结果
-  bool _showResult = false;
+  /// 三张牌是否已经全部翻开
+  bool _allOpened = false;
 
-  /// 左右牌结果
-  bool _showLeftResult = false;
-  bool _showRightResult = false;
+  /// 首次点击的中奖牌位置
+  int? _winningCardIndex;
 
-  // 翻开后的结果-自定义
-  List<String> _resultImages = [
-    'as_yunying6_0',
-    'as_yunying6_2',
-    'as_yunying6_1',
-  ];
-
-  /// 洗牌控制器
-  late AnimationController _shuffleController;
+  final List<String> _resultImages = List<String>.filled(3, 'as_yunying6_bg');
 
   /// 三张牌翻牌控制器
   late AnimationController _centerFlipController;
@@ -1442,20 +1823,7 @@ class ASyunying6DialogState extends State<ASyunying6Dialog>
   @override
   void initState() {
     super.initState();
-
-    final screenWidth = 1.sw;
-
-    const cardWidth = 123.0;
-
-    /// 三张牌平分布局
-    final space = (screenWidth - cardWidth * 3) / 4;
-
-    _cardX = [space, space * 2 + cardWidth, space * 3 + cardWidth * 2];
-
-    _shuffleController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 260),
-    );
+    as_event_fire(ASTrackEvent.withdrawalCard, {});
 
     _centerFlipController = AnimationController(
       vsync: this,
@@ -1496,8 +1864,6 @@ class ASyunying6DialogState extends State<ASyunying6Dialog>
 
   @override
   void dispose() {
-    _shuffleController.dispose();
-
     _centerFlipController.dispose();
 
     _leftFlipController.dispose();
@@ -1509,88 +1875,42 @@ class ASyunying6DialogState extends State<ASyunying6Dialog>
     super.dispose();
   }
 
-  /// 开始三张牌交换
-  Future<void> _openCard() async {
-    if (_isOpening) return;
+  AnimationController _controllerFor(int index) {
+    if (index == 0) return _leftFlipController;
+    if (index == 1) return _centerFlipController;
+    return _rightFlipController;
+  }
+
+  /// 点击任意牌后先翻出中奖牌，再依次翻开其余两张牌。
+  Future<void> _openCard(int selectedIndex) async {
+    if (_isOpening || _winningCardIndex != null) return;
+    final otherIndexes = [
+      0,
+      1,
+      2,
+    ].where((index) => index != selectedIndex).toList();
 
     setState(() {
       _isOpening = true;
-
-      _showResult = false;
-
-      _showLeftResult = false;
-
-      _showRightResult = false;
-
-      _centerFlipController.reset();
-
-      _leftFlipController.reset();
-
-      _rightFlipController.reset();
-
-      _breathController.stop();
-
-      _breathController.reset();
+      _winningCardIndex = selectedIndex;
+      _resultImages[selectedIndex] = 'as_yunying6_0';
+      _resultImages[otherIndexes[0]] = 'as_yunying6_1';
+      _resultImages[otherIndexes[1]] = 'as_yunying6_2';
     });
 
-    final random = Random();
-
-    /// 持续2秒洗牌
-    final endTime = DateTime.now().millisecondsSinceEpoch + 2000;
-
-    while (DateTime.now().millisecondsSinceEpoch < endTime) {
-      int first = random.nextInt(3);
-
-      int second = random.nextInt(3);
-
-      while (first == second) {
-        second = random.nextInt(3);
-      }
-
-      final temp = _positions[first];
-
-      _positions[first] = _positions[second];
-
-      _positions[second] = temp;
-
-      if (mounted) {
-        setState(() {});
-      }
-
-      await Future.delayed(const Duration(milliseconds: 260));
-    }
-
-    /// 中间牌先显示光效
-    setState(() {
-      _showResult = true;
-    });
-
-    /// 光效呼吸
+    await _controllerFor(selectedIndex).forward();
     _breathController.repeat(reverse: true);
 
-    /// 中间牌翻开
-    await _centerFlipController.forward();
+    for (final index in otherIndexes) {
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) return;
+      await _controllerFor(index).forward();
+    }
 
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    /// 左边牌翻开
-    setState(() {
-      _showLeftResult = true;
-    });
-
-    await _leftFlipController.forward();
-
-    await Future.delayed(const Duration(milliseconds: 200));
-
-    /// 右边牌翻开
-    setState(() {
-      _showRightResult = true;
-    });
-
-    await _rightFlipController.forward();
-
+    if (!mounted) return;
     setState(() {
       _isOpening = false;
+      _allOpened = true;
     });
   }
 
@@ -1600,7 +1920,7 @@ class ASyunying6DialogState extends State<ASyunying6Dialog>
       height: 164,
 
       decoration: BoxDecoration(
-        image: index == 1 && _showResult ? ASDImg('as_yunying6_guang') : null,
+        image: index == _winningCardIndex ? ASDImg('as_yunying6_guang') : null,
       ),
 
       child: Stack(
@@ -1610,7 +1930,7 @@ class ASyunying6DialogState extends State<ASyunying6Dialog>
 
             top: 5.5,
 
-            child: ASImg(name: _getCardImage(index), width: 117, height: 158),
+            child: ASImg(name: 'as_yunying6_bg', width: 117, height: 158),
           ),
         ],
       ),
@@ -1626,72 +1946,42 @@ class ASyunying6DialogState extends State<ASyunying6Dialog>
       animation = _rightFlipAnimation;
     }
 
-    return AnimatedBuilder(
-      animation: animation,
+    return ParticleButton(
+      onTap: () => _openCard(index),
+      child: AnimatedBuilder(
+        animation: animation,
 
-      builder: (_, child) {
-        final angle = animation.value;
+        builder: (_, child) {
+          final angle = animation.value;
 
-        return Transform(
-          alignment: Alignment.center,
+          return Transform(
+            alignment: Alignment.center,
 
-          transform: Matrix4.identity()
-            ..setEntry(3, 2, 0.0015)
-            ..rotateY(angle),
+            transform: Matrix4.identity()
+              ..setEntry(3, 2, 0.0015)
+              ..rotateY(angle),
 
-          child: angle > pi / 2
-              ? Transform(
-                  alignment: Alignment.center,
+            child: angle > pi / 2
+                ? Transform(
+                    alignment: Alignment.center,
 
-                  transform: Matrix4.identity()..rotateY(pi),
+                    transform: Matrix4.identity()..rotateY(pi),
 
-                  child: index == 1 && _showResult
-                      ? ScaleTransition(
-                          scale: _breathAnimation,
+                    child: index == _winningCardIndex
+                        ? ScaleTransition(
+                            scale: _breathAnimation,
 
-                          child: _resultCard(index),
-                        )
-                      : _resultCard(index),
-                )
-              : child,
-        );
-      },
+                            child: _resultCard(index),
+                          )
+                        : _resultCard(index),
+                  )
+                : child,
+          );
+        },
 
-      child: card,
+        child: card,
+      ),
     );
-  }
-
-  String _getCardImage(int index) {
-    double angle;
-
-    if (index == 0) {
-      angle = _leftFlipAnimation.value;
-    } else if (index == 1) {
-      angle = _centerFlipAnimation.value;
-    } else {
-      angle = _rightFlipAnimation.value;
-    }
-
-    // 没翻过90度，一直显示背面
-    if (angle < pi / 2) {
-      return 'as_yunying6_bg';
-    }
-
-    // 翻过90度后显示结果
-
-    if (index == 0 && _showLeftResult) {
-      return 'as_yunying6_1';
-    }
-
-    if (index == 1 && _showResult) {
-      return 'as_yunying6_0';
-    }
-
-    if (index == 2 && _showRightResult) {
-      return 'as_yunying6_2';
-    }
-
-    return 'as_yunying6_bg';
   }
 
   Widget _resultCard(int index) {
@@ -1703,7 +1993,7 @@ class ASyunying6DialogState extends State<ASyunying6Dialog>
       height: 164,
 
       decoration: BoxDecoration(
-        image: index == 1 ? ASDImg('as_yunying6_guang') : null,
+        image: index == _winningCardIndex ? ASDImg('as_yunying6_guang') : null,
       ),
 
       child: Stack(
@@ -1720,21 +2010,6 @@ class ASyunying6DialogState extends State<ASyunying6Dialog>
     );
   }
 
-  /// 单张牌移动动画
-  Widget _cardAnimation(int index, double left) {
-    return AnimatedPositioned(
-      duration: const Duration(milliseconds: 260),
-
-      curve: Curves.easeInOut,
-
-      left: left,
-
-      top: 0,
-
-      child: _buildCard(index),
-    );
-  }
-
   Widget _buildCards() {
     return SizedBox(
       width: 1.sw,
@@ -1743,11 +2018,24 @@ class ASyunying6DialogState extends State<ASyunying6Dialog>
 
       child: Stack(
         children: [
-          _cardAnimation(_positions[0], _cardX[_positions[0]]),
-
-          _cardAnimation(_positions[1], _cardX[_positions[1]]),
-
-          _cardAnimation(_positions[2], _cardX[_positions[2]]),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: SizedBox(
+              width: 369,
+              height: 164,
+              child: Row(
+                children: [_buildCard(0), _buildCard(1), _buildCard(2)],
+              ),
+            ),
+          ),
+          if (_winningCardIndex == null)
+            Positioned(
+              left: (1.sw - 70.w) * 0.5 + 28.w,
+              top: 76.h,
+              child: IgnorePointer(
+                child: ASTapGuide(width: 70.w, height: 70.h),
+              ),
+            ),
         ],
       ),
     );
@@ -1763,30 +2051,29 @@ class ASyunying6DialogState extends State<ASyunying6Dialog>
           crossAxisAlignment: CrossAxisAlignment.center,
 
           children: [
-            Row(
-              children: [
-                const Spacer(),
-
-                ParticleButton(
-                  child: SizedBox(
-                    width: 40,
-
-                    height: 40,
-
-                    child: Center(
-                      child: ASImg(name: 'as_close_w', width: 18, height: 18),
-                    ),
-                  ),
-
-                  onTap: () {
-                    Navigator.pop(context, 0);
-                  },
-                ),
-
-                SizedBox(width: 32.w),
-              ],
-            ),
-
+            // Row(
+            //   children: [
+            //     const Spacer(),
+            //
+            //     ParticleButton(
+            //       child: SizedBox(
+            //         width: 40,
+            //
+            //         height: 40,
+            //
+            //         child: Center(
+            //           child: ASImg(name: 'as_close_w', width: 18, height: 18),
+            //         ),
+            //       ),
+            //
+            //       onTap: () {
+            //         Navigator.pop(context, 0);
+            //       },
+            //     ),
+            //
+            //     SizedBox(width: 32.w),
+            //   ],
+            // ),
             SizedBox(height: 21.h),
 
             ASImg(name: 'as_yunying6_top', width: 345, height: 69),
@@ -1797,36 +2084,500 @@ class ASyunying6DialogState extends State<ASyunying6Dialog>
 
             SizedBox(height: 31.h),
 
-            ParticleButton(
-              onTap: () {
-                _openCard();
-              },
-
-              child: Container(
-                width: 339,
-
-                height: 55,
-
-                decoration: BoxDecoration(image: ASDImg('as_yellow_btn_bg')),
-
-                child: Center(
-                  child: ASText(
-                    text: _isOpening ? 'Opening...' : 'Open (3)',
-
-                    size: 24,
-
-                    color: '#5C300E'.color(),
-
-                    weight: FontWeight.w600,
-                  ),
-                ),
-              ),
+            SizedBox(
+              height: 55,
+              child: _allOpened
+                  ? ParticleButton(
+                      onTap: () => Navigator.pop(context, 1),
+                      child: Container(
+                        width: 339,
+                        height: 55,
+                        decoration: BoxDecoration(
+                          image: ASDImg('as_yellow_btn_bg'),
+                        ),
+                        child: Center(
+                          child: ASText(
+                            text: 'Next',
+                            size: 24,
+                            color: '#5C300E'.color(),
+                            weight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    )
+                  : null,
             ),
 
             SizedBox(height: 50.h),
           ],
         ),
       ],
+    );
+  }
+}
+
+// 骰子次数不足
+class ASDiceNotEnoughDialog extends StatelessWidget {
+  const ASDiceNotEnoughDialog({super.key});
+
+  int _availableScratchType() {
+    final provider = ASLocalProvider.instance;
+    final usedCounts = [
+      provider.as_scrach_end_number_0,
+      provider.as_scrach_end_number_1,
+      provider.as_scrach_end_number_2,
+      provider.as_scrach_end_number_3,
+      provider.as_scrach_end_number_4,
+      provider.as_scrach_end_number_5,
+    ];
+    return usedCounts.indexWhere((usedCount) => usedCount < 10);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 0.width(context),
+      height: 0.height(context),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 347,
+            height: 308,
+            decoration: BoxDecoration(image: ASDImg('as_dice_tip_bg')),
+            child: Stack(
+              children: [
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 17,
+                  child: Center(
+                    child: ASText(
+                      text: 'Not Enough Dice To Roll',
+                      size: 17,
+                      color: '#FFFFFF'.color(),
+                      weight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  top: 6,
+                  right: 7,
+                  child: ParticleButton(
+                    onTap: () => Navigator.pop(context, -1),
+                    child: SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: Center(
+                        child: ASImg(name: 'as_close_x', width: 28, height: 28),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 108,
+                  child: Center(
+                    child: ASImg(
+                      name: 'as_dice_not_icon',
+                      width: 142,
+                      height: 133,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 18.h),
+          ParticleButton(
+            onTap: () {
+              final type = _availableScratchType();
+              if (type < 0) return;
+              Navigator.pop(context, type);
+            },
+            child: Container(
+              width: 287,
+              height: 55,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(image: ASDImg('as_yellow_s_bg')),
+              child: ASText(
+                text: 'Find It',
+                size: 22,
+                color: '#5C300E'.color(),
+                weight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// 刮卡次数不足
+class ASScratchChanceDialog extends StatefulWidget {
+  final int type;
+
+  const ASScratchChanceDialog({super.key, required this.type});
+
+  @override
+  State<ASScratchChanceDialog> createState() => ASScratchChanceDialogState();
+}
+
+class ASScratchChanceDialogState extends State<ASScratchChanceDialog> {
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    as_event_fire(ASTrackEvent.sheetNumberPopup, {});
+  }
+
+  int get _usedCount {
+    final provider = ASLocalProvider.instance;
+    switch (widget.type) {
+      case 0:
+        return provider.as_scrach_end_number_0;
+      case 1:
+        return provider.as_scrach_end_number_1;
+      case 2:
+        return provider.as_scrach_end_number_2;
+      case 3:
+        return provider.as_scrach_end_number_3;
+      case 4:
+        return provider.as_scrach_end_number_4;
+      case 5:
+        return provider.as_scrach_end_number_5;
+      default:
+        return 0;
+    }
+  }
+
+  String get _usedCountKey {
+    final provider = ASLocalProvider.instance;
+    switch (widget.type) {
+      case 0:
+        return provider.as_scrach_end_number_0Name;
+      case 1:
+        return provider.as_scrach_end_number_1Name;
+      case 2:
+        return provider.as_scrach_end_number_2Name;
+      case 3:
+        return provider.as_scrach_end_number_3Name;
+      case 4:
+        return provider.as_scrach_end_number_4Name;
+      case 5:
+        return provider.as_scrach_end_number_5Name;
+      default:
+        return provider.as_scrach_end_number_0Name;
+    }
+  }
+
+  Future<void> _addFiveScratchChances() async {
+    // 弹窗固定 +5，但保留负值以允许单个刮卡累计超过 10 次。
+    await ASLocalProvider.instance.updateint(_usedCountKey, _usedCount - 5);
+  }
+
+  void _getScratchChances() {
+    if (_isLoading) return;
+    as_event_fire(ASTrackEvent.sheetNumberClick, {});
+    setState(() {
+      _isLoading = true;
+    });
+
+    ASCardAds().as_showAd(
+      context,
+      ASTrackEvent.getCardRewarded,
+      onCacheResponse: (_) {
+        if (!mounted) return;
+        setState(() {
+          _isLoading = false;
+        });
+      },
+      adDidClosed: (_) async {
+        await _addFiveScratchChances();
+        if (!mounted) return;
+        Navigator.pop(context, 1);
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 0.width(context),
+      height: 0.height(context),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          RichText(
+            text: TextSpan(
+              style: TextStyle(
+                fontFamily: text_fontName,
+                fontSize: 26,
+                fontWeight: FontWeight.w900,
+                color: '#FFFFFF'.color(),
+                shadows: [
+                  Shadow(
+                    color: '#6B00BE'.color(),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              children: [
+                const TextSpan(text: 'Wealth '),
+                TextSpan(
+                  text: '+5',
+                  style: TextStyle(color: '#FFF600'.color(), fontSize: 38),
+                ),
+                const TextSpan(text: ' Chances'),
+              ],
+            ),
+          ),
+          SizedBox(height: 32.h),
+          ASImg(
+            name: 'as_get_iocn_${widget.type.clamp(0, 5)}',
+            width: 190,
+            height: 200,
+          ),
+          SizedBox(height: 32.h),
+          Transform.translate(
+            offset: const Offset(0, -6),
+            child: ASStrokeText(
+              text: '+5',
+              size: 48,
+              color: '#FFF600'.color(),
+              weight: FontWeight.w900,
+              skWidth: 2,
+              skColor: '#6412A8'.color(),
+            ),
+          ),
+          SizedBox(height: 26.h),
+          ParticleButton(
+            onTap: _getScratchChances,
+            child: Container(
+              width: 262,
+              height: 84,
+              decoration: BoxDecoration(image: ASDImg('as_green_btn')),
+              child: Stack(
+                children: [
+                  Center(
+                    child: ASStrokeText(
+                      text: _isLoading ? 'Loading...' : 'Get',
+                      size: 28,
+                      color: '#FFFFFF'.color(),
+                      weight: FontWeight.w900,
+                      skWidth: 2,
+                      skColor: '#41740A'.color(),
+                    ),
+                  ),
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: ASImg(name: 'as_ads_icon', width: 42, height: 42),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// 设置
+class ASPopSettingDialog extends StatefulWidget {
+  ASPopSettingDialog({super.key});
+  @override
+  State<ASPopSettingDialog> createState() => ASPopSettingDialogState();
+}
+
+class ASPopSettingDialogState extends State<ASPopSettingDialog> {
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 0.width(context),
+      height: 0.height(context),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 340,
+            height: 382,
+            decoration: BoxDecoration(image: ASDImg('as_set_bg')),
+            child: Column(
+              children: [
+                SizedBox(height: 15.h),
+                ASStrokeText(
+                  text: 'Settings',
+                  size: 24,
+                  color: '#FFFFFF'.color(),
+                  weight: FontWeight.w900,
+                  skWidth: 1,
+                  skColor: '#000000'.color(),
+                ),
+                SizedBox(height: 32.0.h),
+                Row(
+                  mainAxisAlignment: .center,
+                  children: [
+                    SizedBox(
+                      width: 88,
+                      height: 88,
+                      child: InkWell(
+                        splashColor: Colors.transparent,
+                        highlightColor: Colors.transparent,
+                        hoverColor: Colors.transparent,
+                        focusColor: Colors.transparent,
+                        onTap: () async {
+                          if (ASLocalProvider.instance.as_sound_music) {
+                            await ASLocalProvider.instance.updateBool(
+                              ASLocalProvider.instance.as_sound_musicName,
+                              false,
+                            );
+                          } else {
+                            await ASLocalProvider.instance.updateBool(
+                              ASLocalProvider.instance.as_sound_musicName,
+                              true,
+                            );
+                          }
+                          setState(() {});
+                        },
+                        child: Center(
+                          child: ASImg(
+                            name: ASLocalProvider.instance.as_sound_music
+                                ? 'as_sound_s'
+                                : 'as_sound_n',
+                            width: 88,
+                            height: 88,
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 28.w),
+                    SizedBox(
+                      width: 88,
+                      height: 88,
+                      child: InkWell(
+                        splashColor: Colors.transparent,
+                        highlightColor: Colors.transparent,
+                        hoverColor: Colors.transparent,
+                        focusColor: Colors.transparent,
+                        onTap: () async {
+                          if (ASLocalProvider.instance.as_bg_music) {
+                            ASLocalProvider.instance.as_bg_music = false;
+                            await ASAudioUtils().pauseBGM();
+                            await ASLocalProvider.instance.updateBool(
+                              ASLocalProvider.instance.as_bg_musicName,
+                              false,
+                            );
+                          } else {
+                            ASLocalProvider.instance.as_bg_music = true;
+                            await ASLocalProvider.instance.updateBool(
+                              ASLocalProvider.instance.as_bg_musicName,
+                              true,
+                            );
+                            await ASAudioUtils().playBGM();
+                          }
+                          setState(() {});
+                        },
+                        child: Center(
+                          child: ASImg(
+                            name: ASLocalProvider.instance.as_bg_music
+                                ? 'as_bgmusic_s'
+                                : 'as_bgmusic_n',
+                            width: 88,
+                            height: 88,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 40.12.h),
+                Container(
+                  width: 246,
+                  height: 65,
+                  decoration: BoxDecoration(image: ASDImg('as_user_btn')),
+                  child: InkWell(
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                    hoverColor: Colors.transparent,
+                    focusColor: Colors.transparent,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (builder) {
+                            return ASWebkitview(
+                              url:
+                                  "https://sites.google.com/view/170terms-of-use/home",
+                              title: 'User Agreement',
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                SizedBox(height: 10.12.h),
+                Container(
+                  width: 246,
+                  height: 65,
+                  decoration: BoxDecoration(image: ASDImg('as_priacy_btn')),
+                  child: InkWell(
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                    hoverColor: Colors.transparent,
+                    focusColor: Colors.transparent,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (builder) {
+                            return ASWebkitview(
+                              url:
+                                  "https://sites.google.com/view/170privacypolicy/home",
+                              title: 'Privacy Policy',
+                            );
+                          },
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Positioned(
+            right: 18.w,
+            top: (0.height(context) - 362.h) * 0.35,
+            width: 48,
+            height: 48,
+            child: ParticleButton(
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: Center(
+                  child: ASImg(name: 'as_close_x', width: 30, height: 30),
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context, 0);
+              },
+            ),
+          ),
+          Positioned(
+            right: (0.width(context) - 338) * 0.5,
+            bottom: 90.h,
+            width: 338,
+            height: 60,
+            child: ASImg(name: 'as_set_bottom'),
+          ),
+        ],
+      ),
     );
   }
 }

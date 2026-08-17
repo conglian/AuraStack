@@ -154,6 +154,31 @@ class _ASBouncyImageState extends State<ASBouncyImage>
   }
 }
 
+/// 点击手势引导
+class ASTapGuide extends StatelessWidget {
+  const ASTapGuide({
+    super.key,
+    required this.width,
+    required this.height,
+  });
+
+  final double width;
+  final double height;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: height,
+      child: ASBouncyImage(
+        imagePath: 'cs_tap_icon',
+        width: width,
+        height: height,
+      ),
+    );
+  }
+}
+
 class ASAnimatedImageMove extends StatefulWidget {
   final String imageUrl;
   final bool isAnimationEnabled;
@@ -187,7 +212,7 @@ class _ASAnimatedImageMoveState extends State<ASAnimatedImageMove>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 1),
+      duration: const Duration(milliseconds: 500),
     );
 
     // 缩放动画

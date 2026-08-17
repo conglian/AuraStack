@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../ASModel/ASFKModel.dart';
 import 'ASTBAEventTool.dart';
+import 'ASTrackEvent.dart';
 import 'as_LocalProvider.dart';
 import 'as_extension_help.dart';
 
@@ -24,7 +25,7 @@ class ASFKManger {
 
   Future<void> initFKJson() async {
     if (fkModel.ui.device == 0) {
-      String jsonString = await rootBundle.loadString("c153_risk_control".jsons());
+      String jsonString = await rootBundle.loadString("c170_risk_control".jsons());
       asLog.info('risk_control=$jsonString');
       Map<String, dynamic> jsonMap = json.decode(jsonString);
       fkModel = ASFkModel.fromJson(jsonMap);
@@ -68,7 +69,7 @@ class ASFKManger {
       as_event_fire(
         "nskdh_fk_head_off",
         {
-          "type": types,
+          "types": types,
         },
       );
       return true;
@@ -93,12 +94,12 @@ class ASFKManger {
     }
     // // //现金金额达到提现门槛,视频数少于3次
     // if((prefs.getInt('as_ad_all_number') ?? 0) < fkModel.behavior.wrong_deem_ad_less && (prefs.getInt('as_dolas_old_number') ?? 0) >= 1000){
-    //   as_event_fire('risk_chance', {'risk_from' : 'wrong_deem_ad_less'});
+    //   as_event_fire(ASTrackEvent.riskChance, {'risk_from' : 'wrong_deem_ad_less'});
     //   return true;
     // }
     // // 用户观看90次RV(不包含插屏)，未到提现门槛
     // if((prefs.getInt('as_ad_reawrd_all_number') ?? 0) >= fkModel.behavior.wrong_deem_ad_more && (prefs.getInt('as_dolas_old_number') ?? 0) < 1000){
-    //   as_event_fire('risk_chance', {'risk_from' : 'wrong_deem_ad_more'});
+    //   as_event_fire(ASTrackEvent.riskChance, {'risk_from' : 'wrong_deem_ad_more'});
     //   return true;
     // }
     return false;
@@ -121,7 +122,7 @@ class ASFKManger {
         // "duplicate_times":0,"update_times":1,"recall_times":0}
         var json = jsonDecode(response.body);
         if(json["err"] == 0 && json["device_type"] != 0 && fkModel.ui.number == 1){
-          as_event_fire('risk_chance', {'risk_from' : 'number'});
+          as_event_fire(ASTrackEvent.riskChance, {'risk_from' : 'number'});
           await ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_fk_number_statusName,true);
         }else{
           await ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_fk_number_statusName,false);
@@ -160,7 +161,7 @@ class ASFKManger {
       try{
         var bfrog = jsonDecode(result)["data"]["bfrog"];
         if(bfrog && fkModel.device.contains('ip') && fkModel.ui.device == 1){
-          as_event_fire('risk_chance', {'risk_from' : 'ip'});
+          as_event_fire(ASTrackEvent.riskChance, {'risk_from' : 'ip'});
           await ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_fk_ip_statusName,true);
         }
       }catch(e){
@@ -189,7 +190,7 @@ class ASFKManger {
       'developer' : developer ? 1 : 0,
       'googleplay' : googleplay ? 1 : 0,
     };
-    as_event_fire('session_custom', customer);
+    as_event_fire(ASTrackEvent.sessionCustom, customer);
 
   }
 
@@ -199,7 +200,7 @@ class ASFKManger {
       return false;
     }
     if(result && fkModel.device.contains('root')){
-      as_event_fire('risk_chance', {'risk_from' : 'root'});
+      as_event_fire(ASTrackEvent.riskChance, {'risk_from' : 'root'});
       ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_fk_decvice_statusName,true);
       return true;
     }
@@ -212,7 +213,7 @@ class ASFKManger {
       return false;
     }
     if(result && fkModel.device.contains('vpn')){
-      as_event_fire('risk_chance', {'risk_from' : 'vpn'});
+      as_event_fire(ASTrackEvent.riskChance, {'risk_from' : 'vpn'});
       ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_fk_decvice_statusName,true);
       return true;
     }
@@ -225,7 +226,7 @@ class ASFKManger {
       return false;
     }
     if(!result && fkModel.device.contains('sim')){
-      as_event_fire('risk_chance', {'risk_from' : 'sim'});
+      as_event_fire(ASTrackEvent.riskChance, {'risk_from' : 'sim'});
       ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_fk_decvice_statusName,true);
       return true;
     }
@@ -238,7 +239,7 @@ class ASFKManger {
       return false;
     }
     if(result && fkModel.device.contains('simulator')){
-      as_event_fire('risk_chance', {'risk_from' : 'simulator'});
+      as_event_fire(ASTrackEvent.riskChance, {'risk_from' : 'simulator'});
       ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_fk_decvice_statusName,true);
       return true;
     }
@@ -251,7 +252,7 @@ class ASFKManger {
       return false;
     }
     if(result && fkModel.device.contains('developer')){
-      as_event_fire('risk_chance', {'risk_from' : 'developer'});
+      as_event_fire(ASTrackEvent.riskChance, {'risk_from' : 'developer'});
       ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_fk_decvice_statusName,true);
       return true;
     }
@@ -264,7 +265,7 @@ class ASFKManger {
       return false;
     }
     if(!result && fkModel.device.contains('googleplay')){
-      as_event_fire('risk_chance', {'risk_from' : 'googleplay'});
+      as_event_fire(ASTrackEvent.riskChance, {'risk_from' : 'googleplay'});
       ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_fk_decvice_statusName,true);
       return true;
     }

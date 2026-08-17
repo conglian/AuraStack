@@ -15,6 +15,7 @@ import '../ASModel/ASAdModel.dart';
 import 'ASAudioUtils.dart';
 import 'ASFKManger.dart';
 import 'ASTBAEventTool.dart';
+import 'ASTrackEvent.dart';
 import 'as_LocalProvider.dart';
 import 'as_extension_help.dart';
 
@@ -161,8 +162,8 @@ class ASCardAds {
       }) async {
     if (skipAd) {
       // await setTxProgress();
-      adDidClosed.call(true);
-      resetHandler();
+      onAdClosed ??= adDidClosed;
+      await _finishAdCallback(true);
       return;
     }
     // 风控
@@ -184,7 +185,7 @@ class ASCardAds {
     String adType = placeID.contains("rv") ? "rv" : "int";
     bool defaultMode = _ASCardAuraAdModel?.olstk_switch ?? false;
     asLog.debug('$runtimeType ad service request to show [$quizAdPlaceID], ad type is $adType, use mode #$defaultMode');
-    as_event_fire('ad_chance', {"ad_pos_id": placeID, 'ad_format' : placeID.contains('int') ? 'int' : 'rv'});
+    as_event_fire(ASTrackEvent.adChance, {"ad_pos_id": placeID, 'ad_format' : placeID.contains('int') ? 'int' : 'rv'});
 
     if (defaultMode == false) {
       _showA(adType, placeID,onCacheResponse, context: context, showDialog: showDialog);
@@ -220,13 +221,13 @@ class ASCardAds {
       return;
     } else {
       if (context != null && showDialog == true) {
-        as_showfaildDiolog(context);
+        as_showfaildDiolog(context, showDialog);
       }
     }
 
     asLog.error("$runtimeType prepare to show ad [A],type=$adType but no caches find!!");
     as_event_fire(
-      "ad_impression_fail",
+      ASTrackEvent.adImpressionFail,
       {"ad_pos_id": placeID, "reason": 'notPrepared'},
     );
 
@@ -300,7 +301,7 @@ class ASCardAds {
         );
         if (!ready) {
           as_event_fire(
-            "olstk_ad_impression_fail",
+            ASTrackEvent.adImpressionFail,
             {"ad_pos_id": placeID, "reason": 'notPrepared'},
           );
           return false;
@@ -313,7 +314,7 @@ class ASCardAds {
         );
         if (!ready){
           as_event_fire(
-            "olstk_ad_impression_fail",
+            ASTrackEvent.adImpressionFail,
             {"ad_pos_id": placeID, "reason": 'notPrepared'},
           );
           return false;
@@ -332,7 +333,7 @@ class ASCardAds {
       String adType, String placeID,
       Function(bool) onCacheResponse, {
         BuildContext? context,
-        bool showDialog = false,
+        bool showDialog = true,
       }) async {
     final isInt = adType == "int";
     final realType = isInt ? "interstitial" : "reward";
@@ -354,12 +355,12 @@ class ASCardAds {
       return;
     } else {
       if (context != null && showDialog == true) {
-        as_showfaildDiolog(context);
+        as_showfaildDiolog(context, showDialog);
       }
     }
     asLog.debug("$runtimeType prepare to show ad [B],type=$adType but no caches find!!");
     as_event_fire(
-      "olstk_ad_impression_fail",
+      ASTrackEvent.adImpressionFail,
       {"ad_pos_id": placeID, "reason": 'notPrepared'},
     );
 
@@ -378,12 +379,12 @@ class ASCardAds {
     double ecpms = extMap['publisher_revenue'] ?? 0.0;
     String adunit_format = extMap['adunit_format'] ?? '';
     as_ad_fire({
-      "vaduz": ecpms * 1000000,
-      "guru": extMap["network_name"],
-      "phenyl": 'topon_sdk',
-      "nauseate": extMap['adunit_id'],
-      "ambition": quizAdPlaceID,
-      "canister": adunit_format.contains('Rewarded') ? 'rv' : 'int',
+      "ss": ecpms * 1000000,
+      "chute": extMap["network_name"],
+      "motive": 'topon_sdk',
+      "citywide": extMap['adunit_id'],
+      "schnabel": quizAdPlaceID,
+      "canaan": adunit_format.contains('Rewarded') ? 'rv' : 'int',
     });
     adRevenues(ecpms);
     // to sdk
@@ -398,10 +399,10 @@ class ASCardAds {
   }
 
   // 显示失败弹框
-  as_showfaildDiolog(BuildContext context) async {
+  as_showfaildDiolog(BuildContext context, bool isShow) async {
     // 无网络
     bool isConnected = await NetworkUtils.isConnected();
-    if (ASLocalProvider.instance.as_new_guide_end == true){
+    if (isShow == true){
       if (isConnected) {
         asLog.debug("有网加载失败");
         context.tipShow(ASToolDialog(type: .loadfaild));
@@ -415,13 +416,16 @@ class ASCardAds {
   void adShowed() async {
     _adShowed += 1;
     asLog.debug("$runtimeType ad show times $_adShowed");
-    ASLocalProvider.instance.updateint(ASLocalProvider.instance.as_ad_show_numberName, ASLocalProvider.instance.as_ad_show_number + 1);
+    ASLocalProvider.instance.updateint(
+      ASLocalProvider.instance.as_ad_show_numberName,
+      _adShowed,
+    );
     ASLocalProvider.instance.updateint(ASLocalProvider.instance.as_ad_all_numberName, ASLocalProvider.instance.as_ad_all_number + 1);
-    if (ASLocalProvider.instance.as_ad_show_number % 5 == 0 && ASLocalProvider.instance.as_ad_show_number > 0) {
+    if (_adShowed % 5 == 0) {
       as_event_fire(
-        "cash_ad_detail",
+        ASTrackEvent.adLifetime,
         {
-          "ad": ASLocalProvider.instance.as_ad_show_number ?? "",
+          "ad": _adShowed,
         },
       );
     }
@@ -492,7 +496,7 @@ extension AdServiceExtension on ASCardAds {
         asLog.debug("$runtimeType ad requesting [requested] status = $status, type is $type, source is $source, id is $adID");
       }
       as_event_fire(
-        "ad_request",
+        ASTrackEvent.adRequest,
         {
           "ad_code_id": adID,
           "ad_format": type,
@@ -774,7 +778,7 @@ extension AdServiceExtension on ASCardAds {
     _ads[index].sdk = sdk;
     asLog.success("$runtimeType ad did load success [${_ads[index].source}] type = ${_ads[index].type} id = ${_ads[index].ad_identifer} ecpm = ${_ads[index].ecpm} network = ${_ads[index].networkName}");
     as_event_fire(
-      "ad_return",
+      ASTrackEvent.adReturn,
       {
         "ad_code_id": _ads[index].ad_identifer,
         "ad_format": _ads[index].type == "reward" ? "rv" : "int",
@@ -791,7 +795,7 @@ extension AdServiceExtension on ASCardAds {
       return;
     }
     as_event_fire(
-      "ad_return_fail",
+      ASTrackEvent.adReturnFail,
       {
         "ad_code_id": quizAdPlaceID ?? "",
         "ad_format": _ads[index].getTypeToServer(),
@@ -820,10 +824,6 @@ extension AdServiceExtension on ASCardAds {
 
     _savedPlayAndCloseTime = DateTime.now();
     ASLocalProvider.instance.updateint(ASLocalProvider.instance.as_ad_show_indexName, ASLocalProvider.instance.as_ad_show_index + 1);
-    ASLocalProvider.instance.updateint(ASLocalProvider.instance.as_ad_all_numberName, ASLocalProvider.instance.as_ad_all_number + 1);
-    // 广告显示
-    ASLocalProvider.instance.updateint(ASLocalProvider.instance.as_ad_show_numberName, ASLocalProvider.instance.as_ad_show_number + 1);
-
     // if (_ads[index].getTypeToServer() == "rv") {
     //   ASLocalProvider.instance.updateint(ASLocalProvider.instance.as_ad_reawrd_all_numberName, ASLocalProvider.instance.as_ad_reawrd_all_number + 1);
     //   // 判断两次播放间隔小于30s
@@ -835,7 +835,7 @@ extension AdServiceExtension on ASCardAds {
     //     'CSFKManger().fkModel.behavior.ad_short_show.value=${CSFKManger().fkModel.behavior.ad_short_show.value}'.log();
     //     'WUUserHelpers().wu_ad_short_show_number=${ASLocalProvider.instance.as_ad_short_show_number}'.log();
     //     if (CSFKManger().fkModel.behavior.ad_short_show.value <= ASLocalProvider.instance.as_ad_short_show_number){
-    //       as_event_fire('risk_chance', {'risk_from' : 'ad_short_show'});
+    //       as_event_fire(ASTrackEvent.riskChance, {'risk_from' : 'ad_short_show'});
     //       ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_fk_ad_short_showName, true);
     //     }
     //   }
@@ -861,7 +861,7 @@ extension AdServiceExtension on ASCardAds {
     asLog.success("$runtimeType ad did hidden success id = $adId");
     _ads[index].status = 0;
     as_event_fire(
-      "ad_close",
+      ASTrackEvent.adClose,
       {
         "ad_pos_id": quizAdPlaceID ?? "none",
         "ad_source_client": _ads[index].source,
@@ -878,14 +878,13 @@ extension AdServiceExtension on ASCardAds {
     //     ASLocalProvider.instance.updateint(ASLocalProvider.instance.as_ad_short_close_numberName, ASLocalProvider.instance.as_ad_short_close_number + 1);
     //     // 大于等于次数被风控
     //     if (ASFKManger().fkModel.behavior.ad_short_close.value <= ASLocalProvider.instance.as_ad_short_close_number){
-    //       as_event_fire('risk_chance', {'risk_from' : 'ad_short_close'});
+    //       as_event_fire(ASTrackEvent.riskChance, {'risk_from' : 'ad_short_close'});
     //       ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_fk_ad_short_closeName, true);
     //     }
     //   }
     // }
 
-    onAdClosed?.call(true);
-    resetHandler();
+    await _finishAdCallback(true);
 
     _requestAd(defaultIndex: [index]);
   }
@@ -901,12 +900,11 @@ extension AdServiceExtension on ASCardAds {
     _ads[index].status = 0;
     asLog.error("$runtimeType ad did display error [${_ads[index].source}] type = ${_ads[index].type} id = ${_ads[index].ad_identifer}");
     as_event_fire(
-      "olstk_ad_impression_fail",
+      ASTrackEvent.adImpressionFail,
       {"ad_pos_id": quizAdPlaceID ?? "", "reason": errorString},
     );
 
-    onAdClosed?.call(false);
-    resetHandler();
+    await _finishAdCallback(false);
 
     _requestAd(defaultIndex: [index]);
   }
@@ -928,6 +926,20 @@ extension AdServiceExtension on ASCardAds {
     }
     if (quizAdPlaceID != null) {
       quizAdPlaceID = null;
+    }
+  }
+
+  Future<void> _finishAdCallback(bool didClose) async {
+    try {
+      final callbackResult = onAdClosed?.call(didClose);
+      if (callbackResult is Future) {
+        await callbackResult;
+      }
+      if (didClose) {
+        await ASLocalProvider.instance.showRevenueMilestoneFlowAfterAd();
+      }
+    } finally {
+      resetHandler();
     }
   }
 

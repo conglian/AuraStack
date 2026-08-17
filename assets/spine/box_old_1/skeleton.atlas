@@ -1,15 +1,14 @@
 skeleton.png
-size:379,738
+size:628,1222
 filter:Linear,Linear
 pma:true
-scale:0.6
 Group 112
-bounds:2,470,316,266
-offsets:3,10,319,283
+bounds:2,779,526,441
+offsets:5,17,531,471
 dizuo
-bounds:153,2,466,224
-offsets:1,0,468,225
+bounds:253,2,775,373
+offsets:2,0,780,375
 rotate:90
 light
-bounds:2,25,443,149
+bounds:2,39,738,249
 rotate:90

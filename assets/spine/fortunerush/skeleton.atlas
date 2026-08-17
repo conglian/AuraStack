@@ -1,8 +1,7 @@
 skeleton.png
-size:348,112
+size:576,182
 filter:Linear,Linear
 pma:true
-scale:0.6
 1
-bounds:2,2,344,108
-offsets:9,4,362,115
+bounds:2,2,572,178
+offsets:16,8,604,192

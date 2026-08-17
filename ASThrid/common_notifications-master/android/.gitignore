@@ -1,0 +1,6 @@
+/.dart_tool/
+/.idea/
+/build/
+/.gradle/
+/local.properties
+/.DS_Store

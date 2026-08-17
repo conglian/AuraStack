@@ -1,15 +1,15 @@
 skeleton.png
-size:395,265
+size:437,663
 filter:Linear,Linear
 pma:true
-scale:0.6
 Group 112
-bounds:242,2,138,116
-offsets:1,5,139,124
-Group 113
-bounds:242,120,143,151
-offsets:11,0,163,152
+bounds:242,23,230,193
+offsets:2,8,232,206
 rotate:90
+Group 113
+bounds:2,2,238,251
+offsets:19,0,272,254
 huaban-6790459334 1
-bounds:2,18,238,245
-offsets:10,6,257,257
+bounds:2,255,406,408
+offsets:12,10,428,428
+rotate:90

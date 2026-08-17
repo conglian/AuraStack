@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="204dp"
+    android:background="#FFFFFF">
+
+    <ImageView
+        android:id="@+id/fln_beauty_notify_image"
+        android:layout_width="match_parent"
+        android:layout_height="150dp"
+        android:layout_gravity="top"
+        android:scaleType="centerCrop"
+        tools:ignore="ContentDescription" />
+
+<!--    <ImageView-->
+<!--        android:id="@+id/fln_beauty_notify_app_icon"-->
+<!--        android:layout_width="48dp"-->
+<!--        android:layout_height="48dp"-->
+<!--        android:layout_gravity="top|start"-->
+<!--        android:layout_marginStart="8dp"-->
+<!--        android:layout_marginTop="6dp"-->
+<!--        tools:ignore="ContentDescription" />-->
+
+    <TextView
+        android:id="@+id/fln_beauty_notify_title"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:layout_gravity="top"
+        android:layout_marginStart="10dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="10dp"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:includeFontPadding="false"
+        android:maxLines="1"
+        android:textColor="#FFFFFF"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        tools:text="Hurry! Card Cash Drop" />
+
+    <TextView
+        android:id="@+id/fln_beauty_notify_body"
+        android:layout_width="match_parent"
+        android:layout_height="64dp"
+        android:layout_gravity="top"
+        android:layout_marginStart="12dp"
+        android:layout_marginTop="52dp"
+        android:layout_marginEnd="12dp"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:maxLines="3"
+        android:textColor="#FFFFFF"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        tools:text="A surprise scratch bonus just landed.\nDon’t miss this payout chance." />
+
+    <TextView
+        android:id="@+id/fln_beauty_notify_btn"
+        android:layout_width="match_parent"
+        android:layout_height="42dp"
+        android:layout_gravity="bottom"
+        android:layout_marginStart="38dp"
+        android:layout_marginEnd="38dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/fln_beauty_notify_btn_bg"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:includeFontPadding="false"
+        android:singleLine="true"
+        android:textColor="#FFFFFF"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        tools:text="Claim" />
+</FrameLayout>

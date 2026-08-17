@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "641421874952",
+    "project_id": "c170-scratch",
+    "storage_bucket": "c170-scratch.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:641421874952:android:f43d2c9ab00d413d8efebd",
+        "android_client_info": {
+          "package_name": "com.auraascratch.lccstack"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAohBw2wQSGf_VMZiIx2NTvAjgzqMuMCbo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -5,16 +5,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'ASAudioUtils.dart';
+import 'ASGameProgressManager.dart';
 import 'ASLogger.dart';
+import 'ASTBAEventTool.dart';
+import 'ASTrackEvent.dart';
 import 'as_LocalProvider.dart';
 import 'as_extension_help.dart';
-
 
 class ASLocalImageScratchCard extends StatefulWidget {
   final Widget child;
   final String coverImagePath;
   final double strokeWidth;
-  final double scratchThreshold;
+  final double? scratchThreshold;
   final Duration revealDuration;
   final VoidCallback? onScratchEnd;
   final bool autoScratch;
@@ -29,21 +31,27 @@ class ASLocalImageScratchCard extends StatefulWidget {
     required this.coverImagePath,
     this.autoStartY = 128.0,
     this.strokeWidth = 40.0,
-    this.scratchThreshold = 0.65,
+    this.scratchThreshold,
     this.revealDuration = const Duration(milliseconds: 2000),
     this.onScratchEnd,
     this.autoScratch = true,
     this.autoScratchDuration = const Duration(seconds: 2),
     required this.contentW,
     required this.contentH,
-  })  : assert(scratchThreshold >= 0 && scratchThreshold <= 1, 'scratchThreshold必须在0-1之间'),
-        super(key: key);
+  }) : assert(
+         scratchThreshold == null ||
+             (scratchThreshold >= 0 && scratchThreshold <= 1),
+         'scratchThreshold必须在0-1之间',
+       ),
+       super(key: key);
 
   @override
-  _ASLocalImageScratchCardState createState() => _ASLocalImageScratchCardState();
+  _ASLocalImageScratchCardState createState() =>
+      _ASLocalImageScratchCardState();
 }
 
-class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with TickerProviderStateMixin {
+class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard>
+    with TickerProviderStateMixin {
   List<Offset> _points = [];
   late AnimationController _animationController;
   late Animation<double> _animation;
@@ -58,6 +66,7 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
   StreamSubscription<void>? _autoScratchSubscription;
   List<Offset> _autoScratchPath = [];
   int _currentPathIndex = 0;
+  int _lastAutoSoundIndex = 0;
   final double _autoStepHeight = 40;
   Offset? _autoCoinPosition;
   int _totalPathPoints = 0;
@@ -68,12 +77,20 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
 
   bool _isLoading = true; // ✅ 新增：控制首次加载状态
   bool _hasFinished = false;
+  late double _scratchThreshold;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(vsync: this, duration: widget.revealDuration);
-    _animation = Tween(begin: 1.0, end: 0.0).animate(_animationController)..addListener(() => setState(() {}));
+    _scratchThreshold =
+        widget.scratchThreshold ??
+        ASGameProgressManager().gameProgressModel.open_area;
+    _animationController = AnimationController(
+      vsync: this,
+      duration: widget.revealDuration,
+    );
+    _animation = Tween(begin: 1.0, end: 0.0).animate(_animationController)
+      ..addListener(() => setState(() {}));
 
     ASScratchUpdateNotificationService.stream.listen((value) async {
       ASScratchTapNotificationService.sendToDomandNumberNotification(0);
@@ -82,10 +99,6 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
       } else if (value == 1) {
         if (widget.autoScratch && mounted && !_isAutoScratching) {
           _startAutoScratch();
-          ASAudioUtils().stopAllTempAudio();
-          if (ASLocalProvider.instance.as_sound_music){
-            ASAudioUtils().playGuaAudio();
-          }
         }
       }
     });
@@ -95,7 +108,10 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
   }
 
   void _initAutoScratchController() {
-    _autoScratchController = AnimationController(vsync: this, duration: widget.autoScratchDuration);
+    _autoScratchController = AnimationController(
+      vsync: this,
+      duration: widget.autoScratchDuration,
+    );
   }
 
   Future<void> _loadLocalImage() async {
@@ -104,14 +120,8 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
       if (!mounted) return;
       setState(() {
         _coverImage = image;
-        _isLoading = false; // ✅ 加载完成后才显示内容
-      });
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (!mounted) return;
-        setState(() {
-          _coverVisible = true;
-        });
-        if (widget.autoScratch) _generateAutoScratchPath();
+        _coverVisible = true;
+        _isLoading = false;
       });
     } catch (e) {
       asLog.error('加载刮卡图片出错: $e');
@@ -193,29 +203,84 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
 
     _autoScratchPath.clear();
     _currentPathIndex = 0;
-    double y = widget.autoStartY;
-    bool rightToLeft = false;
-
-    while (y < cardHeight) {
-      double startX = rightToLeft ? cardWidth : 0;
-      double endX = rightToLeft ? 0 : cardWidth;
-      double step = 5;
-      for (double x = startX; (rightToLeft && x >= endX) || (!rightToLeft && x <= endX); x += rightToLeft ? -step : step) {
-        _autoScratchPath.add(Offset(x, y));
-      }
-      y += _autoStepHeight;
-      rightToLeft = !rightToLeft;
+    switch (Random().nextInt(4)) {
+      case 0:
+        _generateHorizontalSnakePath(cardWidth, cardHeight);
+        break;
+      case 1:
+        _generateHorizontalSnakePath(cardWidth, cardHeight, bottomToTop: true);
+        break;
+      case 2:
+        _generateVerticalSnakePath(cardWidth, cardHeight);
+        break;
+      case 3:
+        _generateVerticalSnakePath(cardWidth, cardHeight, rightToLeft: true);
+        break;
     }
 
     _totalPathPoints = _autoScratchPath.length;
     _calculatePointInterval();
   }
 
+  void _generateHorizontalSnakePath(
+    double cardWidth,
+    double cardHeight, {
+    bool bottomToTop = false,
+  }) {
+    var y = bottomToTop ? cardHeight : widget.autoStartY;
+    var reverseLine = bottomToTop;
+    while (bottomToTop ? y >= widget.autoStartY : y <= cardHeight) {
+      _addHorizontalPathLine(cardWidth, y, reverseLine);
+      y += bottomToTop ? -_autoStepHeight : _autoStepHeight;
+      reverseLine = !reverseLine;
+    }
+  }
+
+  void _addHorizontalPathLine(double cardWidth, double y, bool rightToLeft) {
+    const pointStep = 5.0;
+    final startX = rightToLeft ? cardWidth : 0.0;
+    final endX = rightToLeft ? 0.0 : cardWidth;
+    for (
+      var x = startX;
+      rightToLeft ? x >= endX : x <= endX;
+      x += rightToLeft ? -pointStep : pointStep
+    ) {
+      _autoScratchPath.add(Offset(x, y));
+    }
+  }
+
+  void _generateVerticalSnakePath(
+    double cardWidth,
+    double cardHeight, {
+    bool rightToLeft = false,
+  }) {
+    var x = rightToLeft ? cardWidth : 0.0;
+    var reverseLine = rightToLeft;
+    while (rightToLeft ? x >= 0 : x <= cardWidth) {
+      _addVerticalPathLine(cardHeight, x, reverseLine);
+      x += rightToLeft ? -_autoStepHeight : _autoStepHeight;
+      reverseLine = !reverseLine;
+    }
+  }
+
+  void _addVerticalPathLine(double cardHeight, double x, bool bottomToTop) {
+    const pointStep = 5.0;
+    final startY = bottomToTop ? cardHeight : widget.autoStartY;
+    final endY = bottomToTop ? widget.autoStartY : cardHeight;
+    for (
+      var y = startY;
+      bottomToTop ? y >= endY : y <= endY;
+      y += bottomToTop ? -pointStep : pointStep
+    ) {
+      _autoScratchPath.add(Offset(x, y));
+    }
+  }
+
   void _calculatePointInterval() {
     if (_totalPathPoints <= 0) return;
     final totalMilliseconds = widget.autoScratchDuration.inMilliseconds;
     final interval = totalMilliseconds / _totalPathPoints;
-    _pointInterval = const Duration(milliseconds: 1);  // 自动刮卡速度：越小越快
+    _pointInterval = const Duration(milliseconds: 1); // 自动刮卡速度：越小越快
   }
 
   void _addAutoScratchPoint(Offset point) {
@@ -228,25 +293,40 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
   }
 
   void _startAutoScratch() {
-    if (_coverImage == null || _autoScratchPath.isEmpty) return;
+    if (_coverImage == null) return;
+    ASAudioUtils().playGuaAudio();
+    _generateAutoScratchPath();
+    if (_autoScratchPath.isEmpty) {
+      ASAudioUtils().stopAllTempAudio();
+      return;
+    }
     _autoScratchSubscription?.cancel();
+    if (!mounted) return;
 
     setState(() {
       _isAutoScratching = true;
       _isScratching = true;
       _currentPathIndex = 0;
+      _lastAutoSoundIndex = 0;
       _autoScratchController.forward();
       _totalScratchArea = 0;
 
       _autoScratchSubscription = Stream.periodic(_pointInterval, (i) => i)
           .take(_totalPathPoints)
           .listen((index) {
-        if (_isAutoScratching && _currentPathIndex < _autoScratchPath.length) {
-          _addAutoScratchPoint(_autoScratchPath[_currentPathIndex]);
-          _currentPathIndex++;
-          _calculateScratchPercentage(Size(widget.contentW, widget.contentH));
-        }
-      });
+            if (_isAutoScratching &&
+                _currentPathIndex < _autoScratchPath.length) {
+              _addAutoScratchPoint(_autoScratchPath[_currentPathIndex]);
+              _currentPathIndex++;
+              if (_currentPathIndex - _lastAutoSoundIndex >= 30) {
+                _lastAutoSoundIndex = _currentPathIndex;
+                ASAudioUtils().playGuaAudio();
+              }
+              _calculateScratchPercentage(
+                Size(widget.contentW, widget.contentH),
+              );
+            }
+          });
     });
   }
 
@@ -258,7 +338,10 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
 
   void _calculateScratchPercentage(Size size) {
     if (_hasFinished) return; // ✅ 关键修复
-    if (_points.isEmpty || _totalCardArea == 0) return;
+    if (_points.isEmpty) return;
+    final cardArea = size.width * size.height;
+    if (cardArea <= 0) return;
+    _totalCardArea = cardArea;
     double scratchArea = 0;
     for (int i = 1; i < _points.length; i++) {
       if (_points[i] == Offset.zero || _points[i - 1] == Offset.zero) continue;
@@ -267,15 +350,20 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
     }
     _totalScratchArea = scratchArea;
     double percent = scratchArea / _totalCardArea;
-    if (percent >= widget.scratchThreshold || _currentPathIndex >= _autoScratchPath.length) {
+    final autoPathFinished =
+        _isAutoScratching &&
+        _autoScratchPath.isNotEmpty &&
+        _currentPathIndex >= _autoScratchPath.length;
+    if (percent >= _scratchThreshold || autoPathFinished) {
       _finishAutoScratch(percent);
     }
   }
 
   Future<void> _finishAutoScratch([double? finalPercent]) async {
-
     if (_hasFinished) return; // ✅ 关键修复
+    final scratchType = _isAutoScratching ? 'aut' : 'user';
     _hasFinished = true;
+    as_event_fire(ASTrackEvent.scratchCard, {'types': scratchType});
     setState(() {
       _isAutoScratching = false;
       _fullyRevealed = true;
@@ -284,7 +372,6 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
       _autoScratchSubscription?.cancel();
       _autoScratchSubscription = null;
     });
-    await ASAudioUtils().stopAllTempAudio();
   }
 
   @override
@@ -299,27 +386,35 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
     }
 
     return GestureDetector(
-      onPanStart: _isAutoScratching ? null : (details) async {
-        if (_fullyRevealed) return;
-        ASScratchTapNotificationService.sendToDomandNumberNotification(0);
-        setState(() {
-          _points.add(details.localPosition);
-          _repaintFlag++;
-          _isScratching = true;
-          _currentFingerPosition = details.localPosition;
-          _autoCoinPosition = null;
-        });
-        // CS_event_fire('scratch_card', {'type' : 'user'});
-        if (ASLocalProvider.instance.as_sound_music) {
-          await ASAudioUtils().playGuaAudio();
-        }
-      },
-      onPanUpdate: _isAutoScratching ? null : (details) => _handlePanUpdate(details, Size(widget.contentW, widget.contentH)),
+      onPanStart: _isAutoScratching
+          ? null
+          : (details) async {
+              if (_fullyRevealed) return;
+              ASScratchTapNotificationService.sendToDomandNumberNotification(0);
+              setState(() {
+                _points.add(details.localPosition);
+                _repaintFlag++;
+                _isScratching = true;
+                _currentFingerPosition = details.localPosition;
+                _autoCoinPosition = null;
+              });
+              if (ASLocalProvider.instance.as_sound_music) {
+                await ASAudioUtils().playGuaAudio();
+              }
+            },
+      onPanUpdate: _isAutoScratching
+          ? null
+          : (details) => _handlePanUpdate(
+              details,
+              Size(widget.contentW, widget.contentH),
+            ),
       onPanEnd: _isAutoScratching ? null : (details) => _handlePanEnd(),
       child: Stack(
         children: [
           widget.child,
-          if (_coverVisible && (!_fullyRevealed || _animation.value > 0) && _coverImage != null)
+          if (_coverVisible &&
+              (!_fullyRevealed || _animation.value > 0) &&
+              _coverImage != null)
             Opacity(
               opacity: _animation.value,
               child: CustomPaint(
@@ -334,7 +429,8 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
                 ),
               ),
             ),
-          if ((_isScratching || _isAutoScratching) && (_currentFingerPosition != null || _autoCoinPosition != null))
+          if ((_isScratching || _isAutoScratching) &&
+              (_currentFingerPosition != null || _autoCoinPosition != null))
             _buildCoinImage(),
         ],
       ),
@@ -342,7 +438,9 @@ class _ASLocalImageScratchCardState extends State<ASLocalImageScratchCard> with 
   }
 
   Widget _buildCoinImage() {
-    final position = _isAutoScratching ? _autoCoinPosition : _currentFingerPosition;
+    final position = _isAutoScratching
+        ? _autoCoinPosition
+        : _currentFingerPosition;
     if (position == null) return const SizedBox();
     return Positioned(
       left: position.dx - 15,
@@ -379,10 +477,7 @@ class _LocalScratchPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     size = Size(contentW, contentH);
 
-    canvas.saveLayer(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint(),
-    );
+    canvas.saveLayer(Rect.fromLTWH(0, 0, size.width, size.height), Paint());
 
     /// 1️⃣ 绘制遮罩图（BoxFit.fill）
     if (!fullyRevealed) {
@@ -391,11 +486,7 @@ class _LocalScratchPainter extends CustomPainter {
         coverImage.height.toDouble(),
       );
 
-      final fittedSizes = applyBoxFit(
-        BoxFit.fill,
-        imageSize,
-        size,
-      );
+      final fittedSizes = applyBoxFit(BoxFit.fill, imageSize, size);
 
       final Rect srcRect = Alignment.center.inscribe(
         fittedSizes.source,
@@ -407,12 +498,7 @@ class _LocalScratchPainter extends CustomPainter {
         Offset.zero & size,
       );
 
-      canvas.drawImageRect(
-        coverImage,
-        srcRect,
-        dstRect,
-        Paint(),
-      );
+      canvas.drawImageRect(coverImage, srcRect, dstRect, Paint());
     }
 
     /// 2️⃣ 擦除路径
@@ -457,9 +543,9 @@ class _LocalScratchPainter extends CustomPainter {
   }
 }
 
-
 class ASScratchUpdateNotificationService {
-  static final StreamController<int> _streamController = StreamController<int>.broadcast();
+  static final StreamController<int> _streamController =
+      StreamController<int>.broadcast();
 
   static Stream<int> get stream => _streamController.stream;
 
@@ -473,7 +559,8 @@ class ASScratchUpdateNotificationService {
 }
 
 class ASScratchTapNotificationService {
-  static final StreamController<int> _streamController = StreamController<int>.broadcast();
+  static final StreamController<int> _streamController =
+      StreamController<int>.broadcast();
 
   static Stream<int> get stream => _streamController.stream;
 
@@ -494,7 +581,7 @@ final swapKey5 = GlobalKey<_ASCardSwapAnimatorState>();
 final swapKey6 = GlobalKey<_ASCardSwapAnimatorState>();
 
 class ASCardSwapAnimator extends StatefulWidget {
-  final Widget child;                 // 初始卡片
+  final Widget child; // 初始卡片
   final Duration duration;
 
   const ASCardSwapAnimator({
@@ -509,7 +596,6 @@ class ASCardSwapAnimator extends StatefulWidget {
 
 class _ASCardSwapAnimatorState extends State<ASCardSwapAnimator>
     with SingleTickerProviderStateMixin {
-
   late Widget _current;
   Widget? _next;
 
@@ -528,34 +614,41 @@ class _ASCardSwapAnimatorState extends State<ASCardSwapAnimator>
 
     _current = widget.child;
 
-    _controller = AnimationController(
-      vsync: this,
-      duration: widget.duration,
-    );
+    _controller = AnimationController(vsync: this, duration: widget.duration);
 
     oldOffsetX = Tween<double>(begin: 0, end: 280).animate(
-      CurvedAnimation(parent: _controller,
-          curve: const Interval(0.0, 0.65, curve: Curves.easeIn)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.65, curve: Curves.easeIn),
+      ),
     );
 
     oldRotation = Tween<double>(begin: 0, end: 0.35).animate(
-      CurvedAnimation(parent: _controller,
-          curve: const Interval(0.0, 0.7, curve: Curves.easeIn)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.7, curve: Curves.easeIn),
+      ),
     );
 
     newOffsetX = Tween<double>(begin: -280, end: 0).animate(
-      CurvedAnimation(parent: _controller,
-          curve: const Interval(0.35, 1.0, curve: Curves.easeOutBack)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.35, 1.0, curve: Curves.easeOutBack),
+      ),
     );
 
     newRotation = Tween<double>(begin: -0.35, end: 0).animate(
-      CurvedAnimation(parent: _controller,
-          curve: const Interval(0.35, 1.0, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.35, 1.0, curve: Curves.easeOut),
+      ),
     );
 
     newOpacity = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller,
-          curve: const Interval(0.3, 1.0, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
+      ),
     );
   }
 
@@ -565,7 +658,8 @@ class _ASCardSwapAnimatorState extends State<ASCardSwapAnimator>
     super.dispose();
   }
 
-  @override void didUpdateWidget(ASCardSwapAnimator oldWidget) {
+  @override
+  void didUpdateWidget(ASCardSwapAnimator oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.child != widget.child) {
       setState(() {
@@ -606,7 +700,6 @@ class _ASCardSwapAnimatorState extends State<ASCardSwapAnimator>
       builder: (_, __) {
         return Stack(
           children: [
-
             /// OLD CARD
             Transform.translate(
               offset: Offset(oldOffsetX.value, 0),

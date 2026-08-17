@@ -1,13 +1,18 @@
 import 'package:aurastack/ASTool/as_LocalProvider.dart';
+import 'package:aurastack/ASTool/ASWithdrawalFlow.dart';
+import 'package:aurastack/ASTool/as_ad_manger.dart';
 import 'package:aurastack/ASTool/as_extension_help.dart';
 import 'package:aurastack/ASTool/as_img.dart';
 import 'package:aurastack/ASTool/as_text.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-
 import '../../ASTool/as_spine_tool.dart';
+import '../../ASTool/ASTBAEventTool.dart';
+import '../../ASTool/ASTrackEvent.dart';
+import '../../ASTool/ASAudioUtils.dart';
 import '../../ASTool/as_stroke_text.dart';
+import '../../moveTool/leaf_anim.dart';
 
 // 余额不足
 class ASCashOutDialog extends StatefulWidget {
@@ -22,6 +27,8 @@ class ASCashOutDialogState extends State<ASCashOutDialog>
   @override
   void initState() {
     super.initState();
+    as_event_fire(ASTrackEvent.cashNotEnoughPopup, {});
+    ASAudioUtils().playErrorCommonAudio();
   }
 
   @override
@@ -95,7 +102,7 @@ class ASCashOutDialogState extends State<ASCashOutDialog>
             SizedBox(height: 27.h),
             ParticleButton(
               onTap: () {
-                Navigator.pop(context, 0);
+                Navigator.pop(context, 1);
               },
               child: Container(
                 width: 287,
@@ -103,7 +110,7 @@ class ASCashOutDialogState extends State<ASCashOutDialog>
                 decoration: BoxDecoration(image: ASDImg('as_yellow_btn_bg')),
                 child: Center(
                   child: ASText(
-                    text: 'Making Money',
+                    text: 'Play',
                     size: 24,
                     color: '#5C300E'.color(),
                     weight: FontWeight.w600,
@@ -183,7 +190,7 @@ class ASTXSubmitDialogState extends State<ASTXSubmitDialog>
                     color: '#FFFFFF'.color(),
                     weight: FontWeight.w700,
                   ),
-                  SizedBox(height: 25),
+                  SizedBox(height: 45),
                   ParticleButton(
                     child: ASImg(
                       name: 'as_act_0_${seletcd_row == 0 ? 's' : 'n'}',
@@ -297,9 +304,24 @@ class ASTXSubmitDialogState extends State<ASTXSubmitDialog>
   }
 }
 
-// Human Verrification
+// 任务1-3
 class ASTXHumanDialog extends StatefulWidget {
-  const ASTXHumanDialog({super.key});
+  final int taskIndex;
+  final String title;
+  final String description;
+  final String taskName;
+  final int progress;
+  final int total;
+
+  const ASTXHumanDialog({
+    super.key,
+    required this.taskIndex,
+    required this.title,
+    required this.description,
+    required this.taskName,
+    required this.progress,
+    required this.total,
+  });
 
   @override
   State<ASTXHumanDialog> createState() => ASTXHumanDialogState();
@@ -310,6 +332,8 @@ class ASTXHumanDialogState extends State<ASTXHumanDialog>
   @override
   void initState() {
     super.initState();
+    as_event_fire(ASTrackEvent.cashTaskPopup, {});
+    ASAudioUtils().playRewardStage2Audio();
   }
 
   @override
@@ -338,6 +362,12 @@ class ASTXHumanDialogState extends State<ASTXHumanDialog>
                   ),
                   onTap: () {
                     Navigator.pop(context, 0);
+                    ASCardAds().as_showAd(
+                      context,
+                      ASTrackEvent.taskInterstitial,
+                      onCacheResponse: (onCacheResponse) {},
+                      adDidClosed: (adDidClosed) {},
+                    );
                   },
                 ),
                 SizedBox(width: 32.w),
@@ -352,7 +382,7 @@ class ASTXHumanDialogState extends State<ASTXHumanDialog>
                 children: [
                   SizedBox(height: 20),
                   ASText(
-                    text: 'Human Verification',
+                    text: widget.title,
                     size: 20,
                     color: '#FFFFFF'.color(),
                     weight: FontWeight.w700,
@@ -365,8 +395,7 @@ class ASTXHumanDialogState extends State<ASTXHumanDialog>
                         width: 264,
                         height: 40,
                         child: ASText(
-                          text:
-                              'Please complete human verification before withdrawing.',
+                          text: widget.description,
                           size: 16,
                           color: '#4A474B'.color(),
                           weight: FontWeight.w600,
@@ -386,10 +415,18 @@ class ASTXHumanDialogState extends State<ASTXHumanDialog>
                     child: Row(
                       children: [
                         SizedBox(width: 6.w),
-                        ASImg(name: 'as_tx_box_icon', width: 46, height: 46),
+                        ASImg(
+                          name: _taskIcon(widget.taskName),
+                          width: 46,
+                          height: 46,
+                        ),
                         SizedBox(width: 8.w),
                         ASText(
-                          text: 'Chests：0/10 Treasure Chests',
+                          text: ASWithdrawalFlow.instance.taskProgressLabel(
+                            widget.taskName,
+                            widget.progress,
+                            widget.total,
+                          ),
                           size: 14,
                           color: '#000000'.color(),
                           weight: FontWeight.w600,
@@ -403,7 +440,7 @@ class ASTXHumanDialogState extends State<ASTXHumanDialog>
             SizedBox(height: 27.h),
             ParticleButton(
               onTap: () {
-                Navigator.pop(context, 0);
+                Navigator.of(context, rootNavigator: true).pop(1);
               },
               child: Container(
                 width: 287,
@@ -425,6 +462,13 @@ class ASTXHumanDialogState extends State<ASTXHumanDialog>
       ],
     );
   }
+
+  String _taskIcon(String name) => switch (name) {
+    'dice' => 'as_tx_dice_icon',
+    'spins' => 'as_tx_wheel_icon',
+    'treasure' => 'as_tx_treasure_icon',
+    _ => 'as_tx_scratch_icon',
+  };
 }
 
 // 安全提示
@@ -544,7 +588,7 @@ class ASTXAccountsecurityDialogState extends State<ASTXAccountsecurityDialog>
   }
 }
 
-// 任务完成
+// 恭喜弹窗
 class ASTXATaskEndDialog extends StatefulWidget {
   const ASTXATaskEndDialog({super.key});
 
@@ -557,6 +601,9 @@ class ASTXATaskEndDialogState extends State<ASTXATaskEndDialog>
   @override
   void initState() {
     super.initState();
+    as_event_fire(ASTrackEvent.congratulationShow, {});
+    ASAudioUtils().playBigwinAudio();
+    as_event_fire(ASTrackEvent.cashQueue, {});
   }
 
   @override
@@ -572,24 +619,24 @@ class ASTXATaskEndDialogState extends State<ASTXATaskEndDialog>
           mainAxisAlignment: .center,
           crossAxisAlignment: .center,
           children: [
-            Row(
-              children: [
-                Spacer(),
-                ParticleButton(
-                  child: SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: Center(
-                      child: ASImg(name: 'as_close_w', width: 18, height: 18),
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context, 0);
-                  },
-                ),
-                SizedBox(width: 32.w),
-              ],
-            ),
+            // Row(
+            //   children: [
+            //     Spacer(),
+            //     ParticleButton(
+            //       child: SizedBox(
+            //         width: 40,
+            //         height: 40,
+            //         child: Center(
+            //           child: ASImg(name: 'as_close_w', width: 18, height: 18),
+            //         ),
+            //       ),
+            //       onTap: () {
+            //         Navigator.pop(context, 0);
+            //       },
+            //     ),
+            //     SizedBox(width: 32.w),
+            //   ],
+            // ),
             SizedBox(height: 12.h),
             Container(
               width: 339,
@@ -672,6 +719,8 @@ class ASTXTipsDialogState extends State<ASTXTipsDialog>
   @override
   void initState() {
     super.initState();
+    as_event_fire(ASTrackEvent.meetWithdraw, {});
+    ASAudioUtils().playCashAudio();
   }
 
   @override
@@ -721,7 +770,8 @@ class ASTXTipsDialogState extends State<ASTXTipsDialog>
             SizedBox(height: 36.h),
             ParticleButton(
               onTap: () {
-                Navigator.pop(context, 1);
+                as_event_fire(ASTrackEvent.meetWithdrawClick, {});
+                Navigator.of(context, rootNavigator: true).pop(1);
               },
               child: Container(
                 width: 339,
@@ -737,16 +787,6 @@ class ASTXTipsDialogState extends State<ASTXTipsDialog>
                 ),
               ),
             ),
-            SizedBox(height: 18.h),
-            ASUnderlineTextButton(
-              text: 'Later On',
-              fontSize: 16,
-              textColor: '#CEC4D5'.color(),
-              underlineColor: '#CEC4D5'.color(),
-              onPressed: () {
-                Navigator.pop(context, 0);
-              },
-            ),
           ],
         ),
       ],
@@ -754,7 +794,7 @@ class ASTXTipsDialogState extends State<ASTXTipsDialog>
   }
 }
 
-/// 提现信息
+/// 提现信息确认
 class ASTXInfoDialog extends StatefulWidget {
   const ASTXInfoDialog({super.key});
 
@@ -764,9 +804,14 @@ class ASTXInfoDialog extends StatefulWidget {
 
 class ASTXInfoDialogState extends State<ASTXInfoDialog>
     with SingleTickerProviderStateMixin {
+  Future<void> _confirmWithdrawalInfo() async {
+    Navigator.pop(context, 1);
+  }
+
   @override
   void initState() {
     super.initState();
+    as_event_fire(ASTrackEvent.cashConfirmation, {});
   }
 
   @override
@@ -782,24 +827,24 @@ class ASTXInfoDialogState extends State<ASTXInfoDialog>
           mainAxisAlignment: .center,
           crossAxisAlignment: .center,
           children: [
-            Row(
-              children: [
-                Spacer(),
-                ParticleButton(
-                  child: SizedBox(
-                    width: 40,
-                    height: 40,
-                    child: Center(
-                      child: ASImg(name: 'as_close_w', width: 18, height: 18),
-                    ),
-                  ),
-                  onTap: () {
-                    Navigator.pop(context, 0);
-                  },
-                ),
-                SizedBox(width: 32.w),
-              ],
-            ),
+            // Row(
+            //   children: [
+            //     Spacer(),
+            //     ParticleButton(
+            //       child: SizedBox(
+            //         width: 40,
+            //         height: 40,
+            //         child: Center(
+            //           child: ASImg(name: 'as_close_w', width: 18, height: 18),
+            //         ),
+            //       ),
+            //       onTap: () {
+            //         Navigator.pop(context, 0);
+            //       },
+            //     ),
+            //     SizedBox(width: 32.w),
+            //   ],
+            // ),
             SizedBox(height: 12.h),
             RichText(
               textAlign: TextAlign.center,
@@ -838,20 +883,20 @@ class ASTXInfoDialogState extends State<ASTXInfoDialog>
                       ),
                     ],
                   ),
-                  SizedBox(height: 60.h),
+                  SizedBox(height: 40.h),
                   Row(
                     children: [
                       SizedBox(width: 22.w),
                       ASText(
                         text: 'Payout Platform',
-                        size: 14.spMax,
+                        size: 13.spMax,
                         color: '#63636F'.color(),
                         weight: FontWeight.w400,
                       ),
                       Spacer(),
                       ASText(
                         text: 'AuraStack',
-                        size: 14.spMax,
+                        size: 13.spMax,
                         color: '#191B3F'.color(),
                         weight: FontWeight.w400,
                       ),
@@ -864,14 +909,14 @@ class ASTXInfoDialogState extends State<ASTXInfoDialog>
                       SizedBox(width: 22.w),
                       ASText(
                         text: 'Payout Instructions',
-                        size: 14.spMax,
+                        size: 13.spMax,
                         color: '#63636F'.color(),
                         weight: FontWeight.w400,
                       ),
                       Spacer(),
                       ASText(
                         text: 'Game Rewards',
-                        size: 14.spMax,
+                        size: 13.spMax,
                         color: '#191B3F'.color(),
                         weight: FontWeight.w400,
                       ),
@@ -884,14 +929,14 @@ class ASTXInfoDialogState extends State<ASTXInfoDialog>
                       SizedBox(width: 22.w),
                       ASText(
                         text: 'Creation Time',
-                        size: 14.spMax,
+                        size: 13.spMax,
                         color: '#63636F'.color(),
                         weight: FontWeight.w400,
                       ),
                       Spacer(),
                       ASText(
                         text: formatNow(),
-                        size: 14.spMax,
+                        size: 13.spMax,
                         color: '#191B3F'.color(),
                         weight: FontWeight.w400,
                       ),
@@ -904,7 +949,7 @@ class ASTXInfoDialogState extends State<ASTXInfoDialog>
                       SizedBox(width: 22.w),
                       ASText(
                         text: 'Account Information',
-                        size: 14.spMax,
+                        size: 12.spMax,
                         color: '#63636F'.color(),
                         weight: FontWeight.w400,
                       ),
@@ -913,7 +958,7 @@ class ASTXInfoDialogState extends State<ASTXInfoDialog>
                         text: ASLocalProvider.instance.as_account_id.isEmpty
                             ? 'Submit later'
                             : ASLocalProvider.instance.as_account_id,
-                        size: 14.spMax,
+                        size: 12.spMax,
                         color: '#191B3F'.color(),
                         weight: FontWeight.w400,
                       ),
@@ -926,14 +971,14 @@ class ASTXInfoDialogState extends State<ASTXInfoDialog>
                       SizedBox(width: 22.w),
                       ASText(
                         text: 'Frequency',
-                        size: 14.spMax,
+                        size: 13.spMax,
                         color: '#63636F'.color(),
                         weight: FontWeight.w400,
                       ),
                       Spacer(),
                       ASText(
                         text: 'One Time',
-                        size: 14.spMax,
+                        size: 13.spMax,
                         color: '#191B3F'.color(),
                         weight: FontWeight.w400,
                       ),
@@ -946,7 +991,7 @@ class ASTXInfoDialogState extends State<ASTXInfoDialog>
                       SizedBox(width: 22.w),
                       ASText(
                         text: 'Payment Method',
-                        size: 14.spMax,
+                        size: 13.spMax,
                         color: '#63636F'.color(),
                         weight: FontWeight.w400,
                       ),
@@ -955,17 +1000,18 @@ class ASTXInfoDialogState extends State<ASTXInfoDialog>
                         name:
                             'as_txinfo_${ASLocalProvider.instance.as_tx_ing_account}',
                         width: 77.w,
-                        height: 22.h,
+                        height: 23.h,
                       ),
                       SizedBox(width: 22.w),
                     ],
                   ),
                   SizedBox(height: 28.h),
-                  Container(
-                    width: 288,
-                    height: 55,
-                    decoration: BoxDecoration(image: ASDImg('as_zis_bg')),
-                    child: ParticleButton(
+                  ParticleButton(
+                    onTap: _confirmWithdrawalInfo,
+                    child: Container(
+                      width: 288.w,
+                      height: 55.h,
+                      decoration: BoxDecoration(image: ASDImg('as_zis_bg')),
                       child: Center(
                         child: ASText(
                           text: 'Confirm',
@@ -974,9 +1020,6 @@ class ASTXInfoDialogState extends State<ASTXInfoDialog>
                           weight: FontWeight.w600,
                         ),
                       ),
-                      onTap: () {
-                        Navigator.pop(context, 1);
-                      },
                     ),
                   ),
                 ],

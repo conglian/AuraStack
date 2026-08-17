@@ -89,6 +89,33 @@ class ASGameProgressManager {
     return _singleRewardForBalance(gameProgressModel.dailyPigTask.bigReward);
   }
 
+  /// 获取骰子奖励列表
+  List<double> getDiceAwardValues() {
+    final rewardRange = _rewardRangeForBalance(
+      gameProgressModel.diceAward,
+      ASLocalProvider.instance.as_dolas_old_number,
+    );
+    return rewardRange.reward;
+  }
+
+  /// 获取转盘奖励列表
+  List<double> getWheelAwardValues() {
+    final rewardRange = _rewardRangeForBalance(
+      gameProgressModel.wheelAward,
+      ASLocalProvider.instance.as_dolas_old_number,
+    );
+    return rewardRange.reward;
+  }
+
+  /// 获取提现插队增加的随机进度
+  int getCutInProgressValue() {
+    final range = gameProgressModel.cutIn;
+    if (range.length < 2) return 0;
+    final first = min(range[0], range[1]);
+    final last = max(range[0], range[1]);
+    return first + Random().nextInt(last - first + 1);
+  }
+
   bool _shouldShowAdForRanges(List<ASAdProgressRange> ranges) {
     if (ranges.isEmpty) return false;
 

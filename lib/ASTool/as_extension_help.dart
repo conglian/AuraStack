@@ -684,7 +684,8 @@ class _ParticleButtonState extends State<ParticleButton>
         clipBehavior: Clip.none,
         children: [
           widget.child, // 按钮保持原位
-          if (_controller.isAnimating || _controller.value > 0)
+          // 动画结束后移除粒子层，避免透明的 CustomPaint 挡住后续点击。
+          if (_controller.isAnimating)
             Positioned.fill(
               child: CustomPaint(
                 painter: _ParticlePainter(_particles, _controller.value),

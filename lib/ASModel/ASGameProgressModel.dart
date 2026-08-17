@@ -23,6 +23,7 @@ class ASGameProgressModel {
   final List<ASRewardRange> bubbleReward;
   final List<ASWithdrawTaskProgress> withdrawTask;
   final List<int> cutIn;
+  final double open_area;
 
   const ASGameProgressModel({
     this.intAd = const <ASAdProgressRange>[],
@@ -42,6 +43,7 @@ class ASGameProgressModel {
     this.bubbleReward = const <ASRewardRange>[],
     this.withdrawTask = const <ASWithdrawTaskProgress>[],
     this.cutIn = const <int>[],
+    this.open_area = 0.5,
   });
 
   factory ASGameProgressModel.fromJson(Map<String, dynamic> json) =>

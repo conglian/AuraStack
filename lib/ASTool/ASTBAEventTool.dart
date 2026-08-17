@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_tba_info/flutter_tba_info.dart';
@@ -103,8 +104,7 @@ class ASRequestHelpers {
     } else {
       eventName = "ad";
     }
-    var url = Uri.parse(
-        "${tba_event_Url}");
+    var url = Uri.parse(tba_event_Url);
     asLog.info("upload event [${eventName}] url ${url} \n ${data}");
     try {
       var response = await http.post(
@@ -116,8 +116,33 @@ class ASRequestHelpers {
       // "upload event [${eventName}] success ${response.body}".log();
       return _handleResponse(response);
     } catch (e) {
-      asLog.error("upload event [${eventName}] faild error $e");
-      // throw Exception('Failed to perform POST request: $e');
+      // Debug 环境测试域名不可解析时回退正式地址，避免埋点因 DNS 问题完全丢失。
+      final isDnsFailure = e is SocketException ||
+          e.toString().contains('Failed host lookup') ||
+          e.toString().contains('Network is unreachable');
+      if (isDnsFailure && tba_event_Url != tba_event_Url_release) {
+        final fallbackUrl = Uri.parse(tba_event_Url_release);
+        asLog.error(
+          "upload event [${eventName}] test endpoint unavailable, retry release url ${fallbackUrl}",
+        );
+        try {
+          final response = await http.post(
+            fallbackUrl,
+            headers: eventHeader,
+            body: jsonEncode(data),
+          );
+          asLog.success(
+            "upload event [${eventName}] release fallback success ${response.body}",
+          );
+          return _handleResponse(response);
+        } catch (fallbackError) {
+          asLog.error(
+            "upload event [${eventName}] release fallback failed $fallbackError",
+          );
+        }
+      } else {
+        asLog.error("upload event [${eventName}] faild error $e");
+      }
     }
   }
 

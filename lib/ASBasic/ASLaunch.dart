@@ -7,12 +7,15 @@ import 'package:intl/intl.dart';
 import 'package:spine_flutter/spine_widget.dart' as spine;
 import '../ASMainVC/ASHome.dart';
 import '../ASTool/ASLogger.dart';
+import '../ASTool/ASNoticeHelp.dart';
 import '../ASTool/ASTBAEventTool.dart';
+import '../ASTool/ASTrackEvent.dart';
 import '../ASTool/as_LocalProvider.dart';
+import '../ASTool/as_ad_manger.dart';
+import '../ASTool/ASAudioUtils.dart';
 import '../ASTool/as_extension_help.dart';
 import '../ASTool/as_img.dart';
 import '../ASTool/as_stroke_text.dart';
-
 
 class ASLaunch extends StatefulWidget {
   ASLaunch({super.key});
@@ -23,24 +26,54 @@ class ASLaunch extends StatefulWidget {
 
 class ASLaunchState extends State<ASLaunch>
     with SingleTickerProviderStateMixin {
-
   var _daydateString = '';
+  late final bool _shouldShowColdLaunchAd;
+  bool _didFinishLaunch = false;
 
+  late AnimationController _logoPulseController;
+
+  late Animation<double> _logoPulseAnimation;
 
   @override
   void initState() {
     super.initState();
+    // 启动瞬间取值，避免首次安装过程中 SDK 写入状态后误展示开屏广告。
+    _shouldShowColdLaunchAd = ASLocalProvider.instance.as_install_status;
+    if (ASLocalProvider.instance.as_bg_music) {
+      ASAudioUtils().playBGM();
+    }
+    _logoPulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    );
+    _logoPulseAnimation = TweenSequence<double>([
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1,
+          end: 1.08,
+        ).chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 45,
+      ),
+      TweenSequenceItem(tween: ConstantTween<double>(1.08), weight: 10),
+      TweenSequenceItem(
+        tween: Tween<double>(
+          begin: 1.08,
+          end: 1,
+        ).chain(CurveTween(curve: Curves.easeInOutCubic)),
+        weight: 45,
+      ),
+    ]).animate(_logoPulseController);
+    _logoPulseController.repeat();
     _setConfigDateInfoData();
-    // PSNoticeHelp().setNoticeStatus();
-    Future.delayed(Duration(milliseconds: 1),(){
+    ASNoticeHelp().setNoticeStatus();
+    Future.delayed(Duration(milliseconds: 1), () {
       as_getUserCloakConfig();
     });
-    as_event_fire('launch_page', {'source_from' : 'icon'});
+    as_event_fire(ASTrackEvent.launchPage, {'source_from': 'icon'});
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // PSNumberHelpers().updateBrazilianPortuguese(context);
     });
-
   }
 
   void as_getUserCloakConfig() async {
@@ -52,10 +85,13 @@ class ASLaunchState extends State<ASLaunch>
         "cloak_user": responseData.toString() == "freshen" ? 1 : 0,
       });
       final SharedPreferences prefs = await SharedPreferences.getInstance();
-      if (prefs.getBool('as_install_status') == null){
+      if (prefs.getBool('as_install_status') == null) {
         prefs.setBool('as_install_status', true);
       }
-      ASLocalProvider.instance.updateBool(ASLocalProvider.instance.as_cloak_statusName, responseData.toString() == "freshen" ? true : false);
+      ASLocalProvider.instance.updateBool(
+        ASLocalProvider.instance.as_cloak_statusName,
+        responseData.toString() == "freshen" ? true : false,
+      );
     } catch (e) {
       asLog.error('pigwalletspine Request Error: $e');
       Future.delayed(Duration(seconds: 1), () {
@@ -77,7 +113,10 @@ class ASLaunchState extends State<ASLaunch>
       prefs.setBool('as_first_instll', true);
     } else {
       if (_daydateString != formattedDate) {
-        await ASLocalProvider.instance.updateint(ASLocalProvider.instance.as_ad_show_indexName, 0);
+        await ASLocalProvider.instance.updateint(
+          ASLocalProvider.instance.as_ad_show_indexName,
+          0,
+        );
         // 隔天
         prefs.setString('as_day_date', formattedDate);
         prefs.setBool('as_old_guide', false);
@@ -87,6 +126,7 @@ class ASLaunchState extends State<ASLaunch>
 
   @override
   void dispose() {
+    _logoPulseController.dispose();
     super.dispose();
   }
 
@@ -104,16 +144,26 @@ class ASLaunchState extends State<ASLaunch>
           Column(
             children: [
               SizedBox(height: 136.h),
-              ASImg(name: 'as_luanch_logo', width: 255, height: 199),
+              ScaleTransition(
+                scale: _logoPulseAnimation,
+                child: ASImg(name: 'as_luanch_logo', width: 255, height: 199),
+              ),
               Spacer(),
               SizedBox(height: 12.h),
               AJGradientProgressBar(
                 onCompleted: () {
-                  pushToGuide();
+                  _finishLaunch();
                 },
               ),
               SizedBox(height: 12.h),
-              ASStrokeText(text: "Loading...", size: 14, color: '#FFFFFF'.color(), weight: FontWeight.w900, skWidth: 1, skColor: '#4C0E0E'.color()),
+              ASStrokeText(
+                text: "Loading...",
+                size: 14,
+                color: '#FFFFFF'.color(),
+                weight: FontWeight.w900,
+                skWidth: 1,
+                skColor: '#4C0E0E'.color(),
+              ),
               SizedBox(height: 120.h),
             ],
           ),
@@ -122,12 +172,28 @@ class ASLaunchState extends State<ASLaunch>
     );
   }
 
-  Future<void> pushToGuide() async {
+  void _finishLaunch() {
+    if (_didFinishLaunch) return;
+    if (!_shouldShowColdLaunchAd) {
+      pushToGuide();
+      return;
+    }
+
+    ASCardAds().as_showAd(
+      context,
+      ASTrackEvent.launchColdInterstitial,
+      showDialog: false,
+      onCacheResponse: (_) => pushToGuide(),
+      adDidClosed: (_) => pushToGuide(),
+    );
+  }
+
+  void pushToGuide() {
+    if (_didFinishLaunch || !mounted) return;
+    _didFinishLaunch = true;
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(
-        builder: (_) => AShome(key: homeKey),
-      ),
+      MaterialPageRoute(builder: (_) => AShome(key: homeKey)),
     );
   }
 }

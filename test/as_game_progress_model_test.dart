@@ -51,6 +51,20 @@ void main() {
     expect(manager.showInterstitialAd(), isTrue);
   });
 
+  test('generates withdrawal cut-in progress within configured range', () {
+    final manager = ASGameProgressManager.instance;
+    manager.gameProgressModel = const ASGameProgressModel(
+      cutIn: <int>[5, 8],
+    );
+
+    for (var index = 0; index < 100; index++) {
+      expect(manager.getCutInProgressValue(), inInclusiveRange(5, 8));
+    }
+
+    manager.gameProgressModel = const ASGameProgressModel();
+    expect(manager.getCutInProgressValue(), 0);
+  });
+
   test('selects pig task interstitial probability from the balance range', () {
     final manager = ASGameProgressManager.instance;
     manager.gameProgressModel = const ASGameProgressModel(
@@ -163,6 +177,54 @@ void main() {
     ASLocalProvider.instance.as_dolas_old_number = 1500;
     expect(manager.getSmallTaskRewardValue(), 40);
     expect(manager.getBigTaskRewardValue(), 80);
+  });
+
+  test('gets dice award values from the current balance range', () {
+    final manager = ASGameProgressManager.instance;
+    manager.gameProgressModel = const ASGameProgressModel(
+      diceAward: <ASRewardRange>[
+        ASRewardRange(
+          firstNumber: 0,
+          endNumber: 300,
+          reward: <double>[50, 40, 46],
+        ),
+        ASRewardRange(
+          firstNumber: 300,
+          endNumber: 1000,
+          reward: <double>[45, 41, 43],
+        ),
+      ],
+    );
+
+    ASLocalProvider.instance.as_dolas_old_number = 100;
+    expect(manager.getDiceAwardValues(), <double>[50, 40, 46]);
+
+    ASLocalProvider.instance.as_dolas_old_number = 1500;
+    expect(manager.getDiceAwardValues(), <double>[45, 41, 43]);
+  });
+
+  test('gets wheel award values from the current balance range', () {
+    final manager = ASGameProgressManager.instance;
+    manager.gameProgressModel = const ASGameProgressModel(
+      wheelAward: <ASRewardRange>[
+        ASRewardRange(
+          firstNumber: 0,
+          endNumber: 300,
+          reward: <double>[50, 45, 48],
+        ),
+        ASRewardRange(
+          firstNumber: 300,
+          endNumber: 1000,
+          reward: <double>[42, 40, 44],
+        ),
+      ],
+    );
+
+    ASLocalProvider.instance.as_dolas_old_number = 100;
+    expect(manager.getWheelAwardValues(), <double>[50, 45, 48]);
+
+    ASLocalProvider.instance.as_dolas_old_number = 1500;
+    expect(manager.getWheelAwardValues(), <double>[42, 40, 44]);
   });
 
   test('generates a forced extra bonus winner with valid scratch data', () {

@@ -1,19 +1,18 @@
 skeleton.png
-size:1292,505
+size:2144,839
 filter:Linear,Linear
 pma:true
-scale:0.6
 Group 112
-bounds:934,11,316,266
-offsets:3,10,319,283
+bounds:1552,21,526,441
+offsets:5,17,531,471
 Group 114
-bounds:489,153,333,350
-offsets:26,1,380,355
+bounds:812,253,553,584
+offsets:44,1,633,592
 dizuo
-bounds:824,279,466,224
-offsets:1,0,468,225
+bounds:1367,464,775,373
+offsets:2,0,780,375
 huaban-6888272126 1
-bounds:2,14,485,489
-offsets:3,13,518,513
+bounds:2,23,808,814
+offsets:5,22,864,855
 light
-bounds:489,2,443,149
+bounds:812,2,738,249

@@ -3,6 +3,7 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -14,7 +15,7 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
         // 启用核心库脱糖
-//        isCoreLibraryDesugaringEnabled = true
+        isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
@@ -33,26 +34,26 @@ android {
         targetSdkVersion(36)
     }
 
-//    signingConfigs {
-//        create("release") {
-//            storeFile = file("/Users/scracthjoy/Desktop/pigwalletssigns.jks")
-//            storePassword = "123456"
-//            keyAlias = "pigwalletssigns"
-//            keyPassword = "123456"
-//        }
-//    }
+    signingConfigs {
+        create("release") {
+            storeFile = file("/Users/aurastack/Desktop/aurastacksinger.jks")
+            storePassword = "123456"
+            keyAlias = "aurastacksinger"
+            keyPassword = "123456"
+        }
+    }
 
-//    buildTypes {
-//        getByName("release") {
-//            signingConfig = signingConfigs.getByName("release")
-//            isMinifyEnabled = true
-//            isShrinkResources = true
-//            proguardFiles(
-//                getDefaultProguardFile("proguard-android-optimize.txt"),
-//                "proguard-rules.pro"
-//            )
-//        }
-//    }
+    buildTypes {
+        getByName("release") {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+    }
 }
 
 
@@ -74,10 +75,6 @@ dependencies {
     implementation ("com.adjust.sdk:adjust-android:4.38.0")
 
     api("io.github.alex-only:max_adapter_tu:1.2.5")
-
-    implementation ("com.google.gms:google-services:4.3.15")
-
-
 
     // TU (Necessary)
     api("com.thinkup.sdk:core-tpn:6.5.73.2")

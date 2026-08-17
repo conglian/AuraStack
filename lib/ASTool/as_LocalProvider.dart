@@ -1,14 +1,22 @@
 import 'dart:convert';
+import 'dart:math';
 import 'package:aurastack/ASMainVC/ASHome.dart';
 import 'package:aurastack/ASTool/ASLogger.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../ASDialog/ASAward/ASAwardDialog.dart';
+import '../ASDialog/ASCash/ASCashDialog.dart';
+import '../ASMainVC/ASCash.dart';
+import '../ASDialog/ASOther/ASOtherDialog.dart';
 import '../main.dart';
+import 'ASNoticeHelp.dart';
+import 'ASAudioUtils.dart';
 import 'ASTBAEventTool.dart';
+import 'ASTrackEvent.dart';
+import 'ASGameProgressManager.dart';
 import 'as_extension_help.dart';
-
 
 class ASLocalProvider extends ChangeNotifier {
   // 1. 私有构造函数（禁止外部直接创建实例）
@@ -19,6 +27,9 @@ class ASLocalProvider extends ChangeNotifier {
 
   // 3. 提供全局访问点
   static ASLocalProvider get instance => _instance;
+
+  bool _isShowingFirstAwardDialog = false;
+  bool _isShowingRevenueMilestoneFlow = false;
 
   String as_account_id = '';
   String as_tx_list = "";
@@ -60,6 +71,7 @@ class ASLocalProvider extends ChangeNotifier {
   bool as_show_box_tips = false;
   bool as_first_box_tips = false;
   bool as_first_show_cash = false;
+  bool as_first_show_award = false;
   bool as_first_show_rank = false;
   bool as_first_show_box = false;
   bool as_open_tx = false;
@@ -96,6 +108,7 @@ class ASLocalProvider extends ChangeNotifier {
   int as_key_number = 0;
   int as_account_seled_index = 0;
   int as_tx_ing_account = 0;
+  int as_tx_pending_account = 0;
   int as_tx_ing_number = 0;
   int as_tx_task_index = 0;
   int as_current_ranking = 99;
@@ -150,7 +163,19 @@ class ASLocalProvider extends ChangeNotifier {
   int as_quiz_all_num = 0;
   int quiz_console = 5;
   int as_dice_index = 0;
+  int as_dice_shou_index = 0;
 
+  // 每日小任务：0-5刮卡、6转盘、7宝箱、8骰子
+  List<int> as_task_progress = List<int>.filled(9, 0);
+  List<bool> as_task_claimed = List<bool>.filled(9, false);
+  bool as_task_pig_claimed = false;
+
+  int get as_task_pig_progress {
+    final completedCount = as_task_progress
+        .where((progress) => progress >= 3)
+        .length;
+    return min(completedCount, 9);
+  }
 
   String as_scrach_end_time_0 = ''; // 存储的本地值
   String as_scrach_end_time_1 = ''; // 存储的本地值
@@ -242,6 +267,8 @@ class ASLocalProvider extends ChangeNotifier {
 
   String get as_tx_ing_accountName => 'as_tx_ing_account';
 
+  String get as_tx_pending_accountName => 'as_tx_pending_account';
+
   String get as_tx_bubble_indexName => 'as_tx_bubble_index';
 
   String get as_tx_card_indexName => 'as_tx_card_index';
@@ -253,6 +280,21 @@ class ASLocalProvider extends ChangeNotifier {
   String get as_tx_card_firstName => 'as_tx_card_first';
 
   String get as_account_idName => 'as_account_id';
+
+  String get as_tx_listName => 'as_tx_list';
+
+  String get as_revenue_milestone_pendingName => 'as_revenue_milestone_pending';
+
+  String get as_revenue_progress_pendingName => 'as_revenue_progress_pending';
+
+  String get as_revenue_progress_500_shownName =>
+      'as_revenue_progress_500_shown';
+
+  String get as_revenue_progress_900_shownName =>
+      'as_revenue_progress_900_shown';
+
+  String get as_withdraw_tips_pending_countName =>
+      'as_withdraw_tips_pending_count';
 
   String get as_tx_dice_indexName => 'as_tx_dice_index';
 
@@ -275,6 +317,8 @@ class ASLocalProvider extends ChangeNotifier {
   String get as_first_box_tipsName => 'as_first_box_tips';
 
   String get as_first_show_cashName => 'as_first_show_cash';
+
+  String get as_first_show_awardName => 'as_first_show_award';
 
   String get as_scratch_guideName => 'as_scratch_guide';
 
@@ -418,131 +462,136 @@ class ASLocalProvider extends ChangeNotifier {
 
   String get as_first_show_boxName => 'as_first_show_box';
 
+  String get as_dice_shou_indexName => 'as_dice_shou_index';
+
   // 3. 初始化：从本地存储加载数据（组件初始化时调用）
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     // 从本地读取值（key自定义，需与存储时一致）
-    as_tx_dice_index =  prefs.getInt('as_tx_dice_index') ?? 0;
-    as_tx_card_first =  prefs.getInt('as_tx_card_first') ?? 0;
-    as_domand_number =  prefs.getInt('as_domand_number') ?? 0;
+    as_tx_dice_index = prefs.getInt('as_tx_dice_index') ?? 0;
+    as_tx_card_first = prefs.getInt('as_tx_card_first') ?? 0;
+    as_domand_number = prefs.getInt('as_domand_number') ?? 0;
     as_dice_index = prefs.getInt('as_dice_index') ?? 0;
+    as_dice_shou_index = prefs.getInt('as_dice_shou_index') ?? 0;
     as_scrach_all_count = prefs.getInt('as_scrach_all_count') ?? 0;
-    as_dice_number =  prefs.getInt('as_dice_number') ?? 0;
-    as_card_number =  prefs.getInt('as_card_number') ?? 0;
-    as_box_index =  prefs.getInt('as_box_index') ?? 0;
-    as_tx_card_index =  prefs.getInt('as_tx_card_index') ?? 0;
-    as_wheel_number =  prefs.getInt('as_wheel_number') ?? 0;
-    as_pig_level =  prefs.getInt('as_pig_level') ?? 0;
-    as_tx_box_index =  prefs.getInt('as_tx_box_index') ?? 0;
-    as_pig_level_index =  prefs.getDouble('as_pig_level_index') ?? 0.0;
-    add_olduser_point =  prefs.getDouble('add_olduser_point') ?? 3.0;
-    as_tx_wheel_index =  prefs.getInt('as_tx_wheel_index') ?? 0;
-    as_tx_bubble_index =  prefs.getInt('as_tx_bubble_index') ?? 0;
-    as_current_ranking =  prefs.getInt('as_current_ranking') ?? 99;
-    as_all_ranking =  prefs.getInt('as_all_ranking') ?? 388;
-    as_rank_ad_count =  prefs.getInt('as_rank_ad_count') ?? 388;
-    as_tx_task_index =  prefs.getInt('as_tx_task_index') ?? 0;
-    as_quiz_task_index =  prefs.getInt('as_quiz_task_index') ?? 0;
-    as_tx_ing_account =  prefs.getInt('as_tx_ing_account') ?? 0;
-    as_tx_ing_number =  prefs.getInt('as_tx_ing_number') ?? 0;
-    as_card_a_number =  prefs.getInt('as_card_a_number') ?? 0;
-    as_quiz_model_index =  prefs.getInt('as_quiz_model_index') ?? 0;
-    as_quiz_num_index =  prefs.getInt('as_quiz_num_index') ?? 0;
-    as_zhuan_number =  prefs.getInt('as_zhuan_number') ?? 0;
-    as_quiz_all_num =  prefs.getInt('as_quiz_all_num') ?? 0;
-    as_quiz_tap_index =  prefs.getInt('as_quiz_tap_index') ?? 0;
-    as_scratch_box_index =  prefs.getInt('as_scratch_box_index') ?? 0;
+    as_dice_number = prefs.getInt('as_dice_number') ?? 0;
+    as_card_number = prefs.getInt('as_card_number') ?? 0;
+    as_box_index = prefs.getInt('as_box_index') ?? 0;
+    as_tx_card_index = prefs.getInt('as_tx_card_index') ?? 0;
+    as_wheel_number = prefs.getInt('as_wheel_number') ?? 0;
+    as_pig_level = prefs.getInt('as_pig_level') ?? 0;
+    as_tx_box_index = prefs.getInt('as_tx_box_index') ?? 0;
+    as_pig_level_index = prefs.getDouble('as_pig_level_index') ?? 0.0;
+    add_olduser_point = prefs.getDouble('add_olduser_point') ?? 3.0;
+    as_tx_wheel_index = prefs.getInt('as_tx_wheel_index') ?? 0;
+    as_tx_bubble_index = prefs.getInt('as_tx_bubble_index') ?? 0;
+    as_current_ranking = prefs.getInt('as_current_ranking') ?? 99;
+    as_all_ranking = prefs.getInt('as_all_ranking') ?? 388;
+    as_rank_ad_count = prefs.getInt('as_rank_ad_count') ?? 388;
+    as_tx_task_index = prefs.getInt('as_tx_task_index') ?? 0;
+    as_quiz_task_index = prefs.getInt('as_quiz_task_index') ?? 0;
+    as_tx_ing_account = prefs.getInt('as_tx_ing_account') ?? 0;
+    as_tx_pending_account = prefs.getInt('as_tx_pending_account') ?? 0;
+    as_tx_ing_number = prefs.getInt('as_tx_ing_number') ?? 0;
+    as_card_a_number = prefs.getInt('as_card_a_number') ?? 0;
+    as_quiz_model_index = prefs.getInt('as_quiz_model_index') ?? 0;
+    as_quiz_num_index = prefs.getInt('as_quiz_num_index') ?? 0;
+    as_zhuan_number = prefs.getInt('as_zhuan_number') ?? 0;
+    as_quiz_all_num = prefs.getInt('as_quiz_all_num') ?? 0;
+    as_quiz_tap_index = prefs.getInt('as_quiz_tap_index') ?? 0;
+    as_scratch_box_index = prefs.getInt('as_scratch_box_index') ?? 0;
     as_qunm_ad_index = prefs.getInt('as_qunm_ad_index') ?? 0;
     as_scratch_not_award_number =
-         prefs.getInt('as_scratch_not_award_number') ?? 0;
-    as_account_seled_index =  prefs.getInt('as_account_seled_index') ?? 0;
-    as_scrach_unlock_index_0 =  prefs.getInt('as_scrach_unlock_index_0') ?? 0;
-    as_scrach_unlock_index_1 =  prefs.getInt('as_scrach_unlock_index_1') ?? 0;
-    as_ad_short_show_number =  prefs.getInt('as_ad_short_show_number') ?? 0;
-    as_ad_short_close_number =  prefs.getInt('as_ad_short_close_number') ?? 0;
-    as_ad_show_number =  prefs.getInt('as_ad_show_number') ?? 0;
-    as_key_number =  prefs.getInt('as_key_number') ?? 0;
-    as_quzi_row =  prefs.getInt('as_quzi_row') ?? 0;
-    as_wheel_number =  prefs.getInt('as_wheel_number') ?? 0;
-    quiz_console =  prefs.getInt('quiz_console') ?? 5;
-    new_ad_console =  prefs.getInt('new_ad_console') ?? 1;
-    as_bg_music =  prefs.getBool('as_bg_music') ?? true;
-    as_sound_music =  prefs.getBool('as_sound_music') ?? true;
-    as_tx_task3_tips =  prefs.getBool('as_tx_task3_tips') ?? false;
-    as_first_show_box =  prefs.getBool('as_first_show_box') ?? false;
-    as_tx_task4_tips =  prefs.getBool('as_tx_task4_tips') ?? false;
-    as_txing_status =  prefs.getBool('as_txing_status') ?? false;
-    as_login_status =  prefs.getBool('as_login_status') ?? false;
+        prefs.getInt('as_scratch_not_award_number') ?? 0;
+    as_account_seled_index = prefs.getInt('as_account_seled_index') ?? 0;
+    as_scrach_unlock_index_0 = prefs.getInt('as_scrach_unlock_index_0') ?? 0;
+    as_scrach_unlock_index_1 = prefs.getInt('as_scrach_unlock_index_1') ?? 0;
+    as_ad_short_show_number = prefs.getInt('as_ad_short_show_number') ?? 0;
+    as_ad_short_close_number = prefs.getInt('as_ad_short_close_number') ?? 0;
+    as_ad_show_number = prefs.getInt('as_ad_show_number') ?? 0;
+    as_key_number = prefs.getInt('as_key_number') ?? 0;
+    as_quzi_row = prefs.getInt('as_quzi_row') ?? 0;
+    as_wheel_number = prefs.getInt('as_wheel_number') ?? 0;
+    quiz_console = prefs.getInt('quiz_console') ?? 5;
+    new_ad_console = prefs.getInt('new_ad_console') ?? 1;
+    as_bg_music = prefs.getBool('as_bg_music') ?? true;
+    as_sound_music = prefs.getBool('as_sound_music') ?? true;
+    as_tx_task3_tips = prefs.getBool('as_tx_task3_tips') ?? false;
+    as_first_show_box = prefs.getBool('as_first_show_box') ?? false;
+    as_first_show_award = prefs.getBool('as_first_show_award') ?? false;
+    as_tx_task4_tips = prefs.getBool('as_tx_task4_tips') ?? false;
+    as_txing_status = prefs.getBool('as_txing_status') ?? false;
+    as_login_status = prefs.getBool('as_login_status') ?? false;
     as_first_show_home = prefs.getBool('as_first_show_home') ?? false;
-    as_good_review_status =  prefs.getBool('as_good_review_status') ?? false;
-    as_open_tx =  prefs.getBool('as_open_tx') ?? false;
+    as_good_review_status = prefs.getBool('as_good_review_status') ?? false;
+    as_open_tx = prefs.getBool('as_open_tx') ?? false;
     as_new_guide_end = prefs.getBool('as_new_guide_end') ?? false;
     as_first_show_rank = prefs.getBool('as_first_show_rank') ?? false;
-    as_install_status =  prefs.getBool('as_install_status') ?? false;
-    as_show_box =  prefs.getBool('as_show_box') ?? false;
-    as_afSwitch =  prefs.getBool('as_afSwitch') ?? true;
-    as_set_root =  prefs.getBool('as_set_root') ?? false;
-    as_show_rank =  prefs.getBool('as_show_rank') ?? false;
-    as_af_status =  prefs.getBool('as_af_status') ?? false;
-    is_end_Scratch =  prefs.getBool('is_end_Scratch') ?? true;
-    as_cloak_status =  prefs.getBool('as_cloak_status') ?? false;
-    as_show_box_tips =  prefs.getBool('as_show_box_tips') ?? false;
-    as_first_box_tips =  prefs.getBool('as_first_box_tips') ?? false;
-    as_fk_number_status =  prefs.getBool('as_fk_number_status') ?? false;
-    as_fk_decvice_status =  prefs.getBool('as_fk_decvice_status') ?? false;
-    as_fk_ad_short_show =  prefs.getBool('as_fk_ad_short_show') ?? false;
-    as_fk_ad_short_close =  prefs.getBool('as_fk_ad_short_close') ?? false;
-    as_fk_ip_status =  prefs.getBool('as_fk_ip_status') ?? false;
-    as_newA_guide =  prefs.getBool('as_newA_guide') ?? false;
-    as_scratch_guide =  prefs.getBool('as_scratch_guide') ?? true;
-    as_old_guide =  prefs.getBool('as_old_guide') ?? true;
-    as_new_guide =  prefs.getBool('as_new_guide') ?? false;
-    as_show_bubble =  prefs.getBool('as_show_bubble') ?? false;
-    as_show_dolas_ani =  prefs.getBool('as_show_dolas_ani') ?? false;
-    as_show_box_guide =  prefs.getBool('as_show_box_guide') ?? false;
-    as_dolas_800 =  prefs.getBool('as_dolas_800') ?? false;
-    as_dolas_1000 =  prefs.getBool('as_dolas_1000') ?? false;
-    as_100_timer_star =  prefs.getBool('as_100_timer_star') ?? false;
-    as_tx_first_status =  prefs.getBool('as_tx_first_status') ?? false;
-    as_tx_last_status =  prefs.getBool('as_tx_last_status') ?? false;
-    as_first_show_cash =  prefs.getBool('as_first_show_cash') ?? false;
-    as_tx_task2_tips =  prefs.getBool('as_tx_task2_tips') ?? false;
-    as_last_tx_end =  prefs.getBool('as_last_tx_end') ?? false;
-    as_yunying_3 =  prefs.getBool('as_yunying_3') ?? false;
-    as_yunying_1 =  prefs.getBool('as_yunying_1') ?? false;
-    as_tx_end_status =  prefs.getBool('as_tx_end_status') ?? false;
-    as_show_80_pop =  prefs.getBool('as_show_80_pop') ?? false;
-    as_tx_ing_status =  prefs.getBool('as_tx_ing_status') ?? false;
-    as_ad_reawrd_all_number =  prefs.getInt('as_ad_reawrd_all_number') ?? 0;
-    as_ad_all_number =  prefs.getInt('as_ad_all_number') ?? 0;
-    as_dollar_number =  prefs.getDouble('as_dollar_number') ?? 0.00;
-    as_dolas_old_number =  prefs.getDouble('as_dolas_old_number') ?? 0.0;
-    as_ad_show_index =  prefs.getInt('as_ad_show_index') ?? 0;
-    as_Level_number =  prefs.getInt('as_Level_number') ?? 1;
-    as_Level_inedx =  prefs.getInt('as_Level_inedx') ?? 1;
-    as_scrach_end_number_0 =  prefs.getInt('as_scrach_end_number_0') ?? 0;
-    as_scrach_end_number_1 =  prefs.getInt('as_scrach_end_number_1') ?? 0;
-    as_scrach_end_number_2 =  prefs.getInt('as_scrach_end_number_2') ?? 0;
-    as_scrach_end_number_3 =  prefs.getInt('as_scrach_end_number_3') ?? 0;
-    as_scrach_end_number_4 =  prefs.getInt('as_scrach_end_number_4') ?? 0;
-    as_scrach_end_number_5 =  prefs.getInt('as_scrach_end_number_5') ?? 0;
-    as_currentNumberIndex =  prefs.getInt('as_currentNumberIndex') ?? 0;
-    as_scratch_status_0 =  prefs.getBool('as_scratch_status_0') ?? true;
-    as_scratch_status_1 =  prefs.getBool('as_scratch_status_1') ?? true;
-    as_scratch_status_2 =  prefs.getBool('as_scratch_status_2') ?? true;
-    as_scratch_status_3 =  prefs.getBool('as_scratch_status_3') ?? true;
-    as_scratch_status_4 =  prefs.getBool('as_scratch_status_4') ?? true;
-    as_scratch_status_5 =  prefs.getBool('as_scratch_status_5') ?? true;
-    as_scratch_status_6 =  prefs.getBool('as_scratch_status_6') ?? true;
-    as_scratch_status_7 =  prefs.getBool('as_scratch_status_7') ?? true;
-    as_scratch_status_8 =  prefs.getBool('as_scratch_status_8') ?? true;
-    as_dolas_80_end =  prefs.getBool('as_dolas_80_end') ?? true;
-    as_card_quicken_30 =  prefs.getBool('as_card_quicken_30') ?? false;
-    as_card_quicken_50 =  prefs.getBool('as_card_quicken_50') ?? false;
-    as_card_quicken_80 =  prefs.getBool('as_card_quicken_80') ?? false;
-    as_card_quicken_90 =  prefs.getBool('as_card_quicken_90') ?? false;
-    as_card_quicken_1 =  prefs.getBool('as_card_quicken_1') ?? false;
-    as_card_quicken_01 =  prefs.getBool('as_card_quicken_01') ?? false;
+    as_install_status = prefs.getBool('as_install_status') ?? false;
+    as_show_box = prefs.getBool('as_show_box') ?? false;
+    as_afSwitch = prefs.getBool('as_afSwitch') ?? true;
+    as_set_root = prefs.getBool('as_set_root') ?? false;
+    as_show_rank = prefs.getBool('as_show_rank') ?? false;
+    as_af_status = prefs.getBool('as_af_status') ?? false;
+    is_end_Scratch = prefs.getBool('is_end_Scratch') ?? true;
+    as_cloak_status = prefs.getBool('as_cloak_status') ?? false;
+    as_show_box_tips = prefs.getBool('as_show_box_tips') ?? false;
+    as_first_box_tips = prefs.getBool('as_first_box_tips') ?? false;
+    as_fk_number_status = prefs.getBool('as_fk_number_status') ?? false;
+    as_fk_decvice_status = prefs.getBool('as_fk_decvice_status') ?? false;
+    as_fk_ad_short_show = prefs.getBool('as_fk_ad_short_show') ?? false;
+    as_fk_ad_short_close = prefs.getBool('as_fk_ad_short_close') ?? false;
+    as_fk_ip_status = prefs.getBool('as_fk_ip_status') ?? false;
+    as_newA_guide = prefs.getBool('as_newA_guide') ?? false;
+    as_scratch_guide = prefs.getBool('as_scratch_guide') ?? true;
+    as_old_guide = prefs.getBool('as_old_guide') ?? true;
+    as_new_guide = prefs.getBool('as_new_guide') ?? false;
+    as_show_bubble = prefs.getBool('as_show_bubble') ?? false;
+    as_show_dolas_ani = prefs.getBool('as_show_dolas_ani') ?? false;
+    as_show_box_guide = prefs.getBool('as_show_box_guide') ?? false;
+    as_dolas_800 = prefs.getBool('as_dolas_800') ?? false;
+    as_dolas_1000 = prefs.getBool('as_dolas_1000') ?? false;
+    as_100_timer_star = prefs.getBool('as_100_timer_star') ?? false;
+    as_tx_first_status = prefs.getBool('as_tx_first_status') ?? false;
+    as_tx_last_status = prefs.getBool('as_tx_last_status') ?? false;
+    as_first_show_cash = prefs.getBool('as_first_show_cash') ?? false;
+    as_tx_task2_tips = prefs.getBool('as_tx_task2_tips') ?? false;
+    as_last_tx_end = prefs.getBool('as_last_tx_end') ?? false;
+    as_yunying_3 = prefs.getBool('as_yunying_3') ?? false;
+    as_yunying_1 = prefs.getBool('as_yunying_1') ?? false;
+    as_tx_end_status = prefs.getBool('as_tx_end_status') ?? false;
+    as_show_80_pop = prefs.getBool('as_show_80_pop') ?? false;
+    as_tx_ing_status = prefs.getBool('as_tx_ing_status') ?? false;
+    as_ad_reawrd_all_number = prefs.getInt('as_ad_reawrd_all_number') ?? 0;
+    as_ad_all_number = prefs.getInt('as_ad_all_number') ?? 0;
+    as_dollar_number = prefs.getDouble('as_dollar_number') ?? 0.00;
+    as_dolas_old_number = prefs.getDouble('as_dolas_old_number') ?? 0.0;
+    as_ad_show_index = prefs.getInt('as_ad_show_index') ?? 0;
+    as_Level_number = prefs.getInt('as_Level_number') ?? 1;
+    as_Level_inedx = prefs.getInt('as_Level_inedx') ?? 1;
+    as_scrach_end_number_0 = prefs.getInt('as_scrach_end_number_0') ?? 0;
+    as_scrach_end_number_1 = prefs.getInt('as_scrach_end_number_1') ?? 0;
+    as_scrach_end_number_2 = prefs.getInt('as_scrach_end_number_2') ?? 0;
+    as_scrach_end_number_3 = prefs.getInt('as_scrach_end_number_3') ?? 0;
+    as_scrach_end_number_4 = prefs.getInt('as_scrach_end_number_4') ?? 0;
+    as_scrach_end_number_5 = prefs.getInt('as_scrach_end_number_5') ?? 0;
+    as_currentNumberIndex = prefs.getInt('as_currentNumberIndex') ?? 0;
+    as_scratch_status_0 = prefs.getBool('as_scratch_status_0') ?? true;
+    as_scratch_status_1 = prefs.getBool('as_scratch_status_1') ?? true;
+    as_scratch_status_2 = prefs.getBool('as_scratch_status_2') ?? true;
+    as_scratch_status_3 = prefs.getBool('as_scratch_status_3') ?? true;
+    as_scratch_status_4 = prefs.getBool('as_scratch_status_4') ?? true;
+    as_scratch_status_5 = prefs.getBool('as_scratch_status_5') ?? true;
+    as_scratch_status_6 = prefs.getBool('as_scratch_status_6') ?? true;
+    as_scratch_status_7 = prefs.getBool('as_scratch_status_7') ?? true;
+    as_scratch_status_8 = prefs.getBool('as_scratch_status_8') ?? true;
+    as_dolas_80_end = prefs.getBool('as_dolas_80_end') ?? true;
+    as_card_quicken_30 = prefs.getBool('as_card_quicken_30') ?? false;
+    as_card_quicken_50 = prefs.getBool('as_card_quicken_50') ?? false;
+    as_card_quicken_80 = prefs.getBool('as_card_quicken_80') ?? false;
+    as_card_quicken_90 = prefs.getBool('as_card_quicken_90') ?? false;
+    as_card_quicken_1 = prefs.getBool('as_card_quicken_1') ?? false;
+    as_card_quicken_01 = prefs.getBool('as_card_quicken_01') ?? false;
     as_ratio_str = prefs.getString('as_ratio_str') ?? '90';
     as_account_id = prefs.getString('as_account_id') ?? '';
     as_tx_list = prefs.getString("as_tx_list") ?? "";
@@ -556,58 +605,467 @@ class ASLocalProvider extends ChangeNotifier {
     as_scratch_gua_index = prefs.getInt('as_scratch_gua_index') ?? 0;
     as_scratch_num_row = prefs.getInt('as_scratch_num_row') ?? 0;
     as_scratch_num_index = prefs.getInt('as_scratch_num_index') ?? 0;
+    as_task_progress = List<int>.generate(
+      9,
+      (index) => prefs.getInt('as_task_progress_$index') ?? 0,
+    );
+    as_task_claimed = List<bool>.generate(
+      9,
+      (index) => prefs.getBool('as_task_claimed_$index') ?? false,
+    );
+    as_task_pig_claimed = prefs.getBool('as_task_pig_claimed') ?? false;
     as_card_quicken_num = prefs.getDouble('as_card_quicken_nums') ?? 0;
-    Future.delayed(Duration(milliseconds: 100),(){
+    Future.delayed(Duration(milliseconds: 100), () {
       notifyListeners(); // 加载完成后通知UI更新
     });
   }
 
   // 通用bool
-  Future<void> updateBool(String key, bool value) async {
+  Future<bool> updateBool(String key, bool value) async {
     final prefs = await SharedPreferences.getInstance();
     bool reuslt = await prefs.setBool(key, value);
     init();
+    return reuslt;
   }
 
   // 通用int
-  Future<void> updateint(String key, int value) async {
+  Future<bool> updateint(String key, int value) async {
     final prefs = await SharedPreferences.getInstance();
     bool reuslt = await prefs.setInt(key, value);
     init();
+    return reuslt;
   }
 
   // 通用double
   Future<void> updatedouble(String key, double value) async {
     final prefs = await SharedPreferences.getInstance();
+    final isDollarReward =
+        key == ASLocalProvider.instance.as_dollar_numberName && value > 0;
+    final shouldShowFirstAward =
+        isDollarReward &&
+        !(prefs.getBool(as_first_show_awardName) ?? false) &&
+        !_isShowingFirstAwardDialog;
+    if (shouldShowFirstAward) {
+      _isShowingFirstAwardDialog = true;
+    }
+
     if (key == ASLocalProvider.instance.as_dollar_numberName) {
-        // CSNoticeHelp().startSJForegroundService();
-      await prefs.setDouble(key, ASLocalProvider.instance.as_dollar_number + value);
+      final oldBalance = prefs.getDouble(key) ?? as_dollar_number;
+      final newBalance = oldBalance + value;
+      await prefs.setDouble(key, newBalance);
+      if (value > 0) {
+        // 每轮余额跨过300或700时，等待本次广告关闭后检查账号信息。
+        if (oldBalance < 700 && newBalance >= 700) {
+          await prefs.setInt(as_revenue_milestone_pendingName, 700);
+        } else if (oldBalance < 300 && newBalance >= 300) {
+          await prefs.setInt(as_revenue_milestone_pendingName, 300);
+        }
+
+        // 阶段收益只使用当前余额判断，500和900各展示一次。
+        var progressPending =
+            prefs.getInt(as_revenue_progress_pendingName) ?? 0;
+        if (oldBalance < 500 &&
+            newBalance >= 500 &&
+            !(prefs.getBool(as_revenue_progress_500_shownName) ?? false)) {
+          progressPending |= 1;
+        }
+        if (oldBalance < 900 &&
+            newBalance >= 900 &&
+            !(prefs.getBool(as_revenue_progress_900_shownName) ?? false)) {
+          progressPending |= 2;
+        }
+        if (progressPending != 0) {
+          await prefs.setInt(as_revenue_progress_pendingName, progressPending);
+        }
+
+        // 当前余额每跨过一个1000区间，增加一次提现提醒。
+        final oldThousands = max(0, oldBalance ~/ 1000);
+        final newThousands = max(0, newBalance ~/ 1000);
+        final crossedThousands = newThousands - oldThousands;
+        if (crossedThousands > 0) {
+          final pendingCount =
+              prefs.getInt(as_withdraw_tips_pending_countName) ?? 0;
+          await prefs.setInt(
+            as_withdraw_tips_pending_countName,
+            pendingCount + crossedThousands,
+          );
+        }
+        await ASNoticeHelp().startSJForegroundService(balance: newBalance);
+      }
+      if (value < 0) {
+        // 提现扣款代表本轮结束，下轮必须重新填写提现信息。
+        await prefs.remove(as_account_idName);
+        await prefs.setInt(as_tx_ing_accountName, 0);
+        await prefs.setInt(as_account_seled_indexName, 0);
+        await prefs.remove(as_revenue_milestone_pendingName);
+        await prefs.remove(as_revenue_progress_pendingName);
+        await prefs.remove(as_withdraw_tips_pending_countName);
+      }
     } else {
       await prefs.setDouble(key, value);
     }
-    asLog.info("value= $value");
-    if (key == ASLocalProvider.instance.as_dollar_numberName && value > 0) {
+    asLog.info("dollar_add $value");
+    Future<dynamic>? dollarAnimation;
+    if (isDollarReward) {
       // 飞金币动画
-      homeKey!.currentState?.context.tipShow2(ASGetDollarDiaologWidget());
-      await prefs.setDouble(as_dolas_old_numberName,  as_dolas_old_number + value);
+      final homeContext = homeKey.currentState?.context;
+      if (homeContext != null && homeContext.mounted) {
+        dollarAnimation = homeContext.tipShow2(
+          const ASGetDollarDiaologWidget(),
+          bc: Colors.transparent,
+        );
+      }
+      final lifetimeCash =
+          (prefs.getDouble(as_dolas_old_numberName) ?? as_dolas_old_number) +
+          value;
+      await prefs.setDouble(as_dolas_old_numberName, lifetimeCash);
+      for (var level = 100; level <= min(1000, lifetimeCash); level += 100) {
+        await trigger.check(
+          level.toInt(),
+          step: 100,
+          onTrigger: (triggeredLevel) {
+            asLog.info("触发 → 达到 $triggeredLevel");
+            as_event_fire(ASTrackEvent.cashLifetime, {'money': triggeredLevel});
+          },
+        );
+      }
     }
-    if (key == ASLocalProvider.instance.as_dollar_numberName && value > 0){
-      trigger.check(ASLocalProvider.instance.as_dollar_number.toInt(), onTrigger: (level) {
-        asLog.info("触发 → 达到 $level");
-        as_event_fire('cash_money_detail', {'money' : level});
-      });
+    if (isDollarReward) {
       await prefs.setBool(as_show_dolas_aniName, true);
     }
-    init();
+    await init();
+
+    if (dollarAnimation != null) {
+      await dollarAnimation;
+    }
+
+    if (shouldShowFirstAward) {
+      try {
+        final homeContext = homeKey.currentState?.context;
+        if (homeContext == null || !homeContext.mounted) return;
+        await prefs.setBool(as_first_show_awardName, true);
+        as_first_show_award = true;
+        if (!homeContext.mounted) return;
+        await homeContext.tipShow2(const ASFristAwardDialog());
+      } finally {
+        _isShowingFirstAwardDialog = false;
+      }
+    }
+  }
+
+  /// 广告关闭后检查运营流程
+  Future<void> showRevenueMilestoneFlowAfterAd() async {
+    if (_isShowingRevenueMilestoneFlow) return;
+    // 在首次异步操作前占用流程，避免多个广告关闭回调并发创建弹窗。
+    _isShowingRevenueMilestoneFlow = true;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final pendingMilestone =
+          prefs.getInt(as_revenue_milestone_pendingName) ?? 0;
+      final progressPending =
+          prefs.getInt(as_revenue_progress_pendingName) ?? 0;
+      final withdrawTipsPending =
+          prefs.getInt(as_withdraw_tips_pending_countName) ?? 0;
+      final hasMilestone = pendingMilestone == 300 || pendingMilestone == 700;
+      if (!hasMilestone && progressPending == 0 && withdrawTipsPending == 0) {
+        return;
+      }
+
+      final account = prefs.getString(as_account_idName) ?? '';
+      final introContext = homeKey.currentState?.context;
+      final needsDialog =
+          (hasMilestone && account.isEmpty) ||
+          progressPending != 0 ||
+          withdrawTipsPending > 0;
+      if (needsDialog && (introContext == null || !introContext.mounted)) {
+        return;
+      }
+
+      if (hasMilestone) {
+        // 本次阈值只检查一次；账号已填写时直接跳过运营流程。
+        await prefs.remove(as_revenue_milestone_pendingName);
+        if (account.isEmpty) {
+          final flowContext = homeKey.currentState?.context;
+          if (flowContext != null && flowContext.mounted) {
+            ASAudioUtils().playOperationAudio();
+            await flowContext.tipShow(const ASYunying1Dialog());
+
+            final secureContext = homeKey.currentState?.context;
+            if (secureContext != null && secureContext.mounted) {
+              final secureResult = await secureContext.tipShow(
+                const ASyunying2Dialog(),
+              );
+              if (secureResult == 1) {
+                final formContext = homeKey.currentState?.context;
+                if (formContext != null && formContext.mounted) {
+                  await formContext.tipShow(const ASyunying3Dialog());
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if ((progressPending & 1) != 0) {
+        final progressContext = homeKey.currentState?.context;
+        if (progressContext == null || !progressContext.mounted) return;
+        final currentPending =
+            prefs.getInt(as_revenue_progress_pendingName) ?? 0;
+        await prefs.setInt(
+          as_revenue_progress_pendingName,
+          currentPending & ~1,
+        );
+        await prefs.setBool(as_revenue_progress_500_shownName, true);
+        if (!progressContext.mounted) return;
+        await progressContext.tipShow(const ASyunying3ProgressDialog());
+      }
+
+      if ((progressPending & 2) != 0) {
+        final progressContext = homeKey.currentState?.context;
+        if (progressContext == null || !progressContext.mounted) return;
+        final currentPending =
+            prefs.getInt(as_revenue_progress_pendingName) ?? 0;
+        await prefs.setInt(
+          as_revenue_progress_pendingName,
+          currentPending & ~2,
+        );
+        await prefs.setBool(as_revenue_progress_900_shownName, true);
+        if (!progressContext.mounted) return;
+        await progressContext.tipShow(const ASyunying3ProgressDialog());
+      }
+
+      for (var index = 0; index < withdrawTipsPending; index++) {
+        final tipsContext = homeKey.currentState?.context;
+        if (tipsContext == null || !tipsContext.mounted) return;
+        final currentPending =
+            prefs.getInt(as_withdraw_tips_pending_countName) ?? 0;
+        await prefs.setInt(
+          as_withdraw_tips_pending_countName,
+          max(0, currentPending - 1),
+        );
+
+        if (!tipsContext.mounted) return;
+        final tipsResult = await tipsContext.tipShow2(const ASTXTipsDialog());
+        if (tipsResult != 1) continue;
+        await Future.delayed(const Duration(milliseconds: 300));
+        final cashContext = homeKey.currentState?.context;
+        if (cashContext == null || !cashContext.mounted) return;
+        await Navigator.of(cashContext).push(
+          MaterialPageRoute(
+            builder: (_) => ASCash(autoStartWithdrawal: as_tx_task_index == 0),
+          ),
+        );
+      }
+    } finally {
+      _isShowingRevenueMilestoneFlow = false;
+    }
   }
 
   // 通用String
-  Future<void> updateString(String key, String value) async {
+  Future<bool> updateString(String key, String value) async {
     final prefs = await SharedPreferences.getInstance();
     bool reuslt = await prefs.setString(key, value);
     init();
+    return reuslt;
+  }
+
+  /// 发起一次提现并保存本次交易所信息
+  Future<void> submitWithdrawal() async {
+    final prefs = await SharedPreferences.getInstance();
+    final balance = prefs.getDouble(as_dollar_numberName) ?? as_dollar_number;
+    if (balance < 1000) return;
+
+    final account = prefs.getInt(as_tx_ing_accountName) ?? as_tx_ing_account;
+    final rawRecords = prefs.getString(as_tx_listName) ?? '';
+    final records = <dynamic>[];
+    if (rawRecords.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawRecords);
+        if (decoded is List) records.addAll(decoded);
+      } catch (_) {
+        for (final item in rawRecords.split(RegExp(r'[,|]'))) {
+          if (item.trim().isNotEmpty) {
+            records.add({'account': 0, 'status': 'in_progress'});
+          }
+        }
+      }
+    }
+    records.add({
+      'account': account,
+      'amount': 1000,
+      'status': 'in_progress',
+      'progress': ASGameProgressManager().getCutInProgressValue(),
+      'created_at': DateTime.now().toIso8601String(),
+    });
+
+    await prefs.setString(as_tx_listName, jsonEncode(records));
+    await prefs.setBool(as_txing_statusName, true);
+    await prefs.setBool(as_tx_end_statusName, false);
+    await updatedouble(as_dollar_numberName, -1000);
+  }
+
+  Future<bool> beginWithdrawalTaskFlow() async {
+    final prefs = await SharedPreferences.getInstance();
+    final balance = prefs.getDouble(as_dollar_numberName) ?? as_dollar_number;
+    if (balance < 1000 || as_tx_task_index > 0) return false;
+
+    final account = prefs.getInt(as_tx_ing_accountName) ?? as_tx_ing_account;
+    await prefs.setInt(as_tx_pending_accountName, account);
+    as_tx_pending_account = account;
+    await prefs.setInt(as_tx_task_indexName, 1);
+    await prefs.setBool(as_txing_statusName, true);
+    await prefs.setBool(as_tx_end_statusName, false);
+    await prefs.setInt(as_tx_card_indexName, 0);
+    await prefs.setInt(as_tx_dice_indexName, 0);
+    await prefs.setInt(as_tx_wheel_indexName, 0);
+    await prefs.setInt(as_tx_box_indexName, 0);
+    await updatedouble(as_dollar_numberName, -1000);
+    await init();
+    // The active withdrawal flow enters the queue here. Keep the queue event
+    // on this path so it is emitted after the task state has been persisted.
+    return true;
+  }
+
+  Future<void> setWithdrawalTaskIndex(int index) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(as_tx_task_indexName, index);
+    as_tx_task_index = index;
+    notifyListeners();
+  }
+
+  Future<int> incrementWithdrawalTaskCounter(String taskName) async {
+    final key = switch (taskName) {
+      'scratch' => as_tx_card_indexName,
+      'dice' => as_tx_dice_indexName,
+      'spins' => as_tx_wheel_indexName,
+      'treasure' => as_tx_box_indexName,
+      _ => '',
+    };
+    if (key.isEmpty) return 0;
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getInt(key) ?? 0;
+    final next = current + 1;
+    await prefs.setInt(key, next);
+    await init();
+    return next;
+  }
+
+  int withdrawalTaskCounter(String taskName) => switch (taskName) {
+    'scratch' => as_tx_card_index,
+    'dice' => as_tx_dice_index,
+    'spins' => as_tx_wheel_index,
+    'treasure' => as_tx_box_index,
+    _ => 0,
+  };
+
+  Future<void> finalizeWithdrawalTaskFlow() async {
+    final prefs = await SharedPreferences.getInstance();
+    final pendingAccount = as_tx_pending_account.clamp(0, 1);
+    final rawRecords = prefs.getString(as_tx_listName) ?? '';
+    final records = <dynamic>[];
+    if (rawRecords.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawRecords);
+        if (decoded is List) records.addAll(decoded);
+      } catch (_) {}
+    }
+    records.add({
+      'account': pendingAccount,
+      'amount': 1000,
+      'status': 'in_progress',
+      'progress': ASGameProgressManager().getCutInProgressValue(),
+      'created_at': DateTime.now().toIso8601String(),
+    });
+    await prefs.setString(as_tx_listName, jsonEncode(records));
+    await prefs.setInt(as_tx_task_indexName, 0);
+    await prefs.setBool(as_txing_statusName, false);
+    await prefs.setBool(as_tx_end_statusName, true);
+    await prefs.remove(as_tx_pending_accountName);
+    await init();
+  }
+
+  /// 增加指定提现记录的排队进度，最高为100
+  Future<void> incrementWithdrawalQueueProgress(
+    int recordIndex,
+    int increment,
+  ) async {
+    if (increment <= 0) return;
+    final prefs = await SharedPreferences.getInstance();
+    final rawRecords = prefs.getString(as_tx_listName) ?? '';
+    if (rawRecords.isEmpty) return;
+
+    try {
+      final decoded = jsonDecode(rawRecords);
+      if (decoded is! List || recordIndex < 0) {
+        return;
+      }
+      final visibleIndexes = <int>[];
+      for (var index = 0; index < decoded.length; index++) {
+        final progress = decoded[index] is Map
+            ? ((decoded[index]['progress'] as num?)?.toInt() ?? 0)
+            : 0;
+        if (progress < 100) visibleIndexes.add(index);
+      }
+      if (recordIndex >= visibleIndexes.length) return;
+      final rawIndex = visibleIndexes[recordIndex];
+      final rawRecord = decoded[rawIndex];
+      if (rawRecord is! Map) return;
+      final record = Map<String, dynamic>.from(rawRecord);
+      final currentProgress = (record['progress'] as num?)?.toInt() ?? 0;
+      if (currentProgress >= 100) {
+        as_event_fire(ASTrackEvent.cutInEnd, {});
+        decoded.removeAt(rawIndex);
+        final encoded = jsonEncode(decoded);
+        await prefs.setString(as_tx_listName, encoded);
+        as_tx_list = encoded;
+        notifyListeners();
+        return;
+      }
+      final nextProgress = min(100, currentProgress + increment);
+      if (nextProgress >= 100) {
+        as_event_fire(ASTrackEvent.cutInEnd, {});
+        decoded.removeAt(rawIndex);
+      } else {
+        record['progress'] = nextProgress;
+        decoded[rawIndex] = record;
+      }
+      final encoded = jsonEncode(decoded);
+      await prefs.setString(as_tx_listName, encoded);
+      as_tx_list = encoded;
+      notifyListeners();
+    } catch (_) {
+      return;
+    }
+  }
+
+  // 增加任务进度，单个任务最多完成3次
+  Future<void> incrementTaskProgress(int index) async {
+    if (index < 0 || index >= as_task_progress.length) return;
+    final prefs = await SharedPreferences.getInstance();
+    final current =
+        prefs.getInt('as_task_progress_$index') ?? as_task_progress[index];
+    final next = min(current + 1, 3);
+    await prefs.setInt('as_task_progress_$index', next);
+    as_task_progress[index] = next;
+    notifyListeners();
+  }
+
+  // 更新小任务领取状态
+  Future<void> claimTask(int index) async {
+    if (index < 0 || index >= as_task_claimed.length) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('as_task_claimed_$index', true);
+    as_task_claimed[index] = true;
+    notifyListeners();
+  }
+
+  // 更新顶部金猪领取状态
+  Future<void> claimTaskPig() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('as_task_pig_claimed', true);
+    as_task_pig_claimed = true;
+    notifyListeners();
   }
 }
 
 final trigger = ASThresholdTrigger();
-

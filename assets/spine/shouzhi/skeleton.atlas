@@ -1,9 +1,8 @@
 skeleton.png
-size:88,86
+size:143,141
 filter:Linear,Linear
 pma:true
-scale:0.6
 shouzhi
-bounds:2,2,82,84
-offsets:20,17,112,118
+bounds:2,2,137,139
+offsets:33,29,187,196
 rotate:90

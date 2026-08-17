@@ -1,22 +1,23 @@
 skeleton.png
-size:80,223
+size:131,362
 filter:Linear,Linear
 pma:true
-scale:0.6
 1
-bounds:55,93,19,20
-offsets:4,4,29,27
+bounds:88,148,32,34
+offsets:7,6,49,45
 rotate:90
 Group 11
-bounds:2,37,67,43
-offsets:1,1,69,45
+bounds:2,16,110,71
+offsets:2,2,115,75
+rotate:90
 Group 12
-bounds:2,2,75,33
-offsets:0,1,76,34
+bounds:75,2,124,54
+offsets:1,2,127,57
+rotate:90
 Group 4899160
-bounds:55,114,107,23
+bounds:88,182,178,38
 rotate:90
 m
-bounds:2,82,139,51
-offsets:0,3,139,61
+bounds:2,128,232,84
+offsets:0,6,232,102
 rotate:90
