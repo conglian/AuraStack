@@ -1,0 +1,6 @@
+<resources>
+    <string name="app_name">C130_GP</string>
+    <string name="facebook_app_id">1475766213481674</string>
+    <string name="facebook_client_token">9becc07e1ef0cf1f14ea70c055f5167b</string>
+    <string name="fb_login_protocol_scheme">fb1475766213481674</string>
+</resources>
