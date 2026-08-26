@@ -3,7 +3,6 @@ import 'package:aurastack/ASTool/ASLogger.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_lifecycle_detector/flutter_lifecycle_detector.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:flutter_tba_info/flutter_tba_info.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../ASMainVC/ASHome.dart';
 import '../main.dart';
@@ -25,54 +24,13 @@ class ASNoticeHelp {
   FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
-  // Notification permission and delivery are disabled for Samsung devices in Korea.
-  Future<bool>? _notificationBlockFuture;
+  Future<void>? _notificationPermissionStatusFuture;
+  bool _notificationFollowUpShownThisLaunch = false;
 
   ASNoticeHelp._internal();
 
-  static const _notificationPermissionHandledDateKey =
-      'as_notification_permission_handled_date';
   static const _notificationFollowUpPendingKey =
       'as_notification_follow_up_pending';
-  static const _notificationFollowUpShownDateKey =
-      'as_notification_follow_up_shown_date';
-
-  String _todayKey() {
-    final now = DateTime.now();
-    return '${now.year.toString().padLeft(4, '0')}-'
-        '${now.month.toString().padLeft(2, '0')}-'
-        '${now.day.toString().padLeft(2, '0')}';
-  }
-
-  Future<bool> _notificationPermissionHandledToday() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_notificationPermissionHandledDateKey) ==
-        _todayKey();
-  }
-
-  Future<bool> _shouldDisableNotifications() {
-    return _notificationBlockFuture ??= _readNotificationBlockStatus();
-  }
-
-  Future<bool> _readNotificationBlockStatus() async {
-    try {
-      final manufacturer = (await FlutterTbaInfo.instance.getManufacturer())
-          .toLowerCase();
-      final country = (await FlutterTbaInfo.instance.getOsCountry())
-          .toLowerCase();
-      final isSamsung = manufacturer.contains('samsung');
-      final isKorea =
-          country == 'kr' ||
-          country == 'ko' ||
-          country.contains('korea') ||
-          country.contains('대한민국');
-      return isSamsung && isKorea;
-    } catch (error) {
-      // Device metadata is optional; keep notifications enabled if it cannot be read.
-      asLog.info('notification device check failed: $error');
-      return false;
-    }
-  }
 
   String _notificationType(String? payload) {
     final source = (payload ?? '').toLowerCase();
@@ -84,15 +42,6 @@ class ASNoticeHelp {
   }
 
   Future<void> initNotice(BuildContext context) async {
-    if (await _shouldDisableNotifications()) {
-      asLog.info('notifications disabled for Samsung device in Korea');
-      try {
-        await flutterLocalNotificationsPlugin.cancelAll();
-      } catch (error) {
-        asLog.info('failed to clear disabled notifications: $error');
-      }
-      return;
-    }
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('as_sm_log'); // Android drawable名称，不加扩展名
 
@@ -152,21 +101,21 @@ class ASNoticeHelp {
   }
 
   Future<void> showPendingFollowUp(BuildContext context) async {
+    if (!context.mounted || _notificationFollowUpShownThisLaunch) return;
+    await _notificationPermissionStatusFuture;
     if (!context.mounted) return;
     final prefs = await SharedPreferences.getInstance();
-    if (!(prefs.getBool(_notificationFollowUpPendingKey) ?? false) ||
-        (prefs.getBool('as_notification_permission_rewarded') ?? false) ||
-        prefs.getString(_notificationFollowUpShownDateKey) == _todayKey()) {
+    if (!(prefs.getBool(_notificationFollowUpPendingKey) ?? false)) {
       return;
     }
-    await prefs.setString(_notificationFollowUpShownDateKey, _todayKey());
-    if (context.mounted) await context.tipShow(ASToolDialog(type: .notice));
+    if (!context.mounted) return;
+    _notificationFollowUpShownThisLaunch = true;
+    await context.tipShow(ASToolDialog(type: .notice));
   }
 
   _spinitNotificationCount(
     FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin,
   ) async {
-    if (await _shouldDisableNotifications()) return;
     try {
       int locals = await AndroidFlutterLocalNotificationsPlugin()
           .extractMessageReceivedNum("noti1");
@@ -278,13 +227,11 @@ class ASNoticeHelp {
     }
   }
 
-  Future<void> setNoticeStatus() async {
-    if (await _shouldDisableNotifications()) {
-      asLog.info(
-        'notification permission disabled for Samsung device in Korea',
-      );
-      return;
-    }
+  Future<void> setNoticeStatus() {
+    return _notificationPermissionStatusFuture ??= _setNoticeStatus();
+  }
+
+  Future<void> _setNoticeStatus() async {
     FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
         FlutterLocalNotificationsPlugin();
     var nfPermission = await flutterLocalNotificationsPlugin
@@ -294,17 +241,17 @@ class ASNoticeHelp {
         ?.requestNotificationsPermission();
     if (nfPermission ?? false) {
       as_event_fire('push_status', {});
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_notificationFollowUpPendingKey, false);
     } else {
       asLog.info("nf no permission");
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(_notificationPermissionHandledDateKey, _todayKey());
       await prefs.setBool(_notificationFollowUpPendingKey, true);
     }
   }
 
   // 前台服务
   Future<void> startSJForegroundService({double? balance}) async {
-    if (await _shouldDisableNotifications()) return;
     //自定义通知ID
     final int id = 1801;
     final currentBalance = balance ?? ASLocalProvider.instance.as_dollar_number;
@@ -356,7 +303,7 @@ class ASNoticeHelp {
       title,
       body,
       //间隔时长根据需求设置
-      const Duration(minutes: 40),
+      const Duration(minutes: 15),
       notificationDetails: details,
       scheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       payload: "Media1",
@@ -389,7 +336,7 @@ class ASNoticeHelp {
       title,
       body,
       //间隔时长根据需求设置
-      const Duration(minutes: 80),
+      const Duration(minutes: 23),
       notificationDetails: details,
       scheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       payload: "Media2",
@@ -422,7 +369,7 @@ class ASNoticeHelp {
       title,
       body,
       //间隔时长根据需求设置
-      const Duration(minutes: 160),
+      const Duration(minutes: 59),
       notificationDetails: details,
       scheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       payload: "Media3",
@@ -455,7 +402,7 @@ class ASNoticeHelp {
       title,
       body,
       //间隔时长根据需求设置
-      const Duration(minutes: 190),
+      const Duration(minutes: 80),
       notificationDetails: details,
       scheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       payload: "Media4",
@@ -492,7 +439,7 @@ class ASNoticeHelp {
       title,
       body,
       //间隔时长根据需求设置
-      const Duration(minutes: 30),
+      const Duration(minutes: 23),
       notificationDetails: details,
       scheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       payload: "noti1",
@@ -528,7 +475,7 @@ class ASNoticeHelp {
       title,
       body,
       //间隔时长根据需求设置
-      const Duration(minutes: 60),
+      const Duration(minutes: 59),
       notificationDetails: details,
       scheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       payload: "noti2",
@@ -564,7 +511,7 @@ class ASNoticeHelp {
       title,
       body,
       //间隔时长根据需求设置
-      const Duration(minutes: 90),
+      const Duration(minutes: 83),
       notificationDetails: details,
       scheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       payload: "noti3",
@@ -600,7 +547,7 @@ class ASNoticeHelp {
       title,
       body,
       //间隔时长根据需求设置
-      const Duration(minutes: 120),
+      const Duration(minutes: 103),
       notificationDetails: details,
       scheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
       payload: "noti4",

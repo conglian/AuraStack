@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:app_settings/app_settings.dart';
@@ -13,6 +14,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../ASTool/ASAudioUtils.dart';
@@ -96,30 +98,53 @@ class ASToolDialog extends StatefulWidget {
 }
 
 class ASToolDialogState extends State<ASToolDialog>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late AnimationController _scaleController;
   late Animation<double> _scaleAnimation;
+  Completer<void>? _settingsReturnCompleter;
+  bool _waitingForNotificationSettings = false;
 
   Future<void> _openNotificationSettings() async {
+    _waitingForNotificationSettings = true;
+    _settingsReturnCompleter = Completer<void>();
     try {
       await AppSettings.openAppSettings(type: AppSettingsType.notification);
+      await _settingsReturnCompleter!.future;
       as_event_fire(ASTrackEvent.notificationConfirmSuccess, {});
-      final prefs = await SharedPreferences.getInstance();
-      if (!(prefs.getBool('as_notification_permission_rewarded') ?? false)) {
-        await ASLocalProvider.instance.updatedouble(
-          ASLocalProvider.instance.as_dollar_numberName,
-          10,
-        );
-        await prefs.setBool('as_notification_permission_rewarded', true);
+      final notificationsEnabled =
+          await AndroidFlutterLocalNotificationsPlugin()
+              .areNotificationsEnabled();
+      if (notificationsEnabled == true) {
+        final prefs = await SharedPreferences.getInstance();
+        if (!(prefs.getBool('as_notification_permission_rewarded') ?? false)) {
+          await ASLocalProvider.instance.updatedouble(
+            ASLocalProvider.instance.as_dollar_numberName,
+            10,
+          );
+          await prefs.setBool('as_notification_permission_rewarded', true);
+        }
       }
     } catch (_) {
       as_event_fire(ASTrackEvent.notificationConfirmFail, {});
+    } finally {
+      _waitingForNotificationSettings = false;
+      _settingsReturnCompleter = null;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _waitingForNotificationSettings &&
+        !(_settingsReturnCompleter?.isCompleted ?? true)) {
+      _settingsReturnCompleter!.complete();
     }
   }
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     switch (widget.type) {
       case ToolType.loadfaild:
         as_event_fire(ASTrackEvent.adRetry, {});
@@ -148,6 +173,10 @@ class ASToolDialogState extends State<ASToolDialog>
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    if (!(_settingsReturnCompleter?.isCompleted ?? true)) {
+      _settingsReturnCompleter!.complete();
+    }
     _scaleController.dispose();
     super.dispose();
   }
