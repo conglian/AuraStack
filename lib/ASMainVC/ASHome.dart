@@ -16,9 +16,8 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../ASDialog/ASAward/ASAwardDialog.dart';
 import '../ASDialog/ASCash/ASCashDialog.dart';
-import '../ASTool/ASFKManger.dart';
+import '../ASDialog/ASGuideA/ASGuideADialog.dart';
 import '../ASTool/ASLogger.dart';
-import '../ASTool/ASNoticeHelp.dart';
 import '../ASTool/ASTBAEventTool.dart';
 import '../ASTool/ASTrackEvent.dart';
 import '../ASTool/ASWithdrawalFlow.dart';
@@ -35,7 +34,10 @@ import 'ASDice.dart';
 final GlobalKey<AShomeState> homeKey = GlobalKey<AShomeState>();
 
 class AShome extends StatefulWidget {
-  AShome({super.key});
+  const AShome({super.key, this.onLuckyCloverTap});
+
+  /// 四叶草入口的业务回调；当前页面只负责首页入口 UI。
+  final VoidCallback? onLuckyCloverTap;
 
   @override
   State<AShome> createState() => AShomeState();
@@ -64,18 +66,6 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
     }
     ASAudioUtils().prepareScratchAudio();
     ASAudioUtils().prepareDolasAudio();
-    ASFKManger().initFK();
-    _noticeInitFuture = ASNoticeHelp().initNotice(context).catchError((
-      error,
-      stackTrace,
-    ) {
-      asLog.error(
-        'Notification initialization failed',
-        tag: 'ASHome',
-        error: error,
-        stackTrace: stackTrace,
-      );
-    });
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ASLocalProvider.instance.init();
       if (!mounted) return;
@@ -101,9 +91,7 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
 
       if (!hasCompletedFirstHomeGuide) {
         await _showFirstHomeGuide();
-      } else {
-        await ASNoticeHelp().showPendingFollowUp(context);
-      }
+      } else {}
     });
 
     _shineTimer = Timer.periodic(const Duration(milliseconds: 1200), (_) {
@@ -334,82 +322,13 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
       return;
     }
 
-    if (!mounted) return;
-    final cardBox =
-        _firstScratchCardKey.currentContext?.findRenderObject() as RenderBox?;
+    if (!mounted || _firstScratchCardKey.currentContext == null) return;
     final overlay = Overlay.of(context);
-    final overlayBox = overlay.context.findRenderObject() as RenderBox?;
-    if (cardBox == null || overlayBox == null || !cardBox.hasSize) return;
-
-    final cardTopLeft = overlayBox.globalToLocal(
-      cardBox.localToGlobal(Offset.zero),
-    );
-    final usedCount = ASLocalProvider.instance.as_scrach_end_number_0;
 
     _firstHomeGuideOverlay = OverlayEntry(
-      builder: (_) => Material(
-        color: Colors.transparent,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: _openFirstScratchFromGuide,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              Container(color: '#000000'.color(opacity: 0.72)),
-              Positioned(
-                left: cardTopLeft.dx,
-                top: cardTopLeft.dy,
-                child: IgnorePointer(
-                  child: Container(
-                    width: 121.w,
-                    height: 205.h,
-                    decoration: BoxDecoration(
-                      image: ASDImg('as_home_list_bg_0'),
-                    ),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          bottom: 21.h,
-                          child: SizedBox(
-                            width: 102.w,
-                            height: 17.h,
-                            child: Row(
-                              children: [
-                                SizedBox(width: 50.w),
-                                ASStrokeText(
-                                  text: 'X${10 - usedCount}',
-                                  size: 12,
-                                  color: '#FFFFFF'.color(),
-                                  weight: FontWeight.w900,
-                                  skWidth: 1,
-                                  skColor: '#000000'.color(),
-                                ),
-                                const Spacer(),
-                                ASImg(
-                                  name: 'as_add_s_icon',
-                                  width: 17,
-                                  height: 17,
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Positioned(
-                left: cardTopLeft.dx + 58.w,
-                top: cardTopLeft.dy + 100.h,
-                child: IgnorePointer(
-                  child: ASTapGuide(width: 80.w, height: 80.h),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      // 新用户4组件自身完全透明，不再重复绘制首页卡片或黑色背景。
+      builder: (_) =>
+          ASSGuideAUser4Page(onScratchCardTap: _openFirstScratchFromGuide),
     );
     overlay.insert(_firstHomeGuideOverlay!);
   }
@@ -436,8 +355,6 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
     _firstHomeGuideOverlay = null;
 
     await _noticeInitFuture;
-    await ASNoticeHelp().showPendingFollowUp(context);
-
     await ASLocalProvider.instance.updateBool(
       ASLocalProvider.instance.as_first_show_homeName,
       true,
@@ -1608,6 +1525,45 @@ class AShomeState extends State<AShome> with SingleTickerProviderStateMixin {
                       width: 59,
                       height: 40,
                       decoration: BoxDecoration(image: ASDImg('as_h5_icon')),
+                    ),
+                  ),
+                ),
+                // 170-A / 新用户5：四叶草按钮直接放在首页设计坐标上。
+                // 黄色圆形底和四叶草图标分层搭建；图标为独立 3 倍 WebP。
+                Positioned(
+                  left: 263.w,
+                  top: 55.h,
+                  child: Semantics(
+                    button: true,
+                    label: 'Lucky profile',
+                    child: ParticleButton(
+                      onTap: () => widget.onLuckyCloverTap?.call(),
+                      child: SizedBox(
+                        width: 58.w,
+                        height: 58.h,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            const Positioned.fill(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFFFDB0D),
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                            ),
+                            Positioned(
+                              left: 14.w,
+                              top: 11.h,
+                              child: ASImg(
+                                name: 'as_guide_a_clover',
+                                width: 34.w,
+                                height: 39.h,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ),

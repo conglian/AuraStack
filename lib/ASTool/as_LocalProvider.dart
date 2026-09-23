@@ -11,7 +11,6 @@ import '../ASDialog/ASCash/ASCashDialog.dart';
 import '../ASMainVC/ASCash.dart';
 import '../ASDialog/ASOther/ASOtherDialog.dart';
 import '../main.dart';
-import 'ASNoticeHelp.dart';
 import 'ASAudioUtils.dart';
 import 'ASTBAEventTool.dart';
 import 'ASTrackEvent.dart';
@@ -690,7 +689,6 @@ class ASLocalProvider extends ChangeNotifier {
             pendingCount + crossedThousands,
           );
         }
-        await ASNoticeHelp().startSJForegroundService(balance: newBalance);
       }
       if (value < 0) {
         // 提现扣款代表本轮结束，下轮必须重新填写提现信息。

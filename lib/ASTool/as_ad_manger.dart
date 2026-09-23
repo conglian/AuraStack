@@ -13,7 +13,6 @@ import 'package:thinkup_sdk/at_rewarded_response.dart';
 import '../ASDialog/ASOther/ASOtherDialog.dart';
 import '../ASModel/ASAdModel.dart';
 import 'ASAudioUtils.dart';
-import 'ASFKManger.dart';
 import 'ASTBAEventTool.dart';
 import 'ASTrackEvent.dart';
 import 'as_LocalProvider.dart';
@@ -164,15 +163,6 @@ class ASCardAds {
       // await setTxProgress();
       onAdClosed ??= adDidClosed;
       await _finishAdCallback(true);
-      return;
-    }
-    // 风控
-    if (await ASFKManger().as_checkAllStatus()){
-      asLog.error('风控不发起广告显示');
-      ASDialogTool.toast(context, 'Something went wrong, please try again later.');
-      as_event_fire('as_fk_un', {});
-      onCacheResponse.call(false);
-      resetHandler();
       return;
     }
 

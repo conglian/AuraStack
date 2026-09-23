@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:spine_flutter/spine_widget.dart' as spine;
 import '../ASMainVC/ASHome.dart';
 import '../ASTool/ASLogger.dart';
-import '../ASTool/ASNoticeHelp.dart';
 import '../ASTool/ASTBAEventTool.dart';
 import '../ASTool/ASTrackEvent.dart';
 import '../ASTool/as_LocalProvider.dart';
@@ -65,7 +64,6 @@ class ASLaunchState extends State<ASLaunch>
     ]).animate(_logoPulseController);
     _logoPulseController.repeat();
     _setConfigDateInfoData();
-    ASNoticeHelp().setNoticeStatus();
     Future.delayed(Duration(milliseconds: 1), () {
       as_getUserCloakConfig();
     });

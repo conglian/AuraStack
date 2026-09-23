@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 extension CardWalletSpinearnExtension on String {
-
   String image() {
     return "assets/images/$this.webp";
   }
@@ -53,12 +52,11 @@ void printLongString(String text) {
 }
 
 extension ScreenExtension on int {
-
-  String dolasType(){
+  String dolasType() {
     // if (isBrazilianPortuguese(homeKey.currentContext!)){
     //   return 'R\$';
     // } else {
-      return '\$';
+    return '\$';
     // }
   }
 
@@ -67,7 +65,8 @@ extension ScreenExtension on int {
     Locale currentLocale = Localizations.localeOf(context);
 
     // 判断是否是巴西葡萄牙语
-    return currentLocale.languageCode == 'pt' || currentLocale.countryCode == 'BR';
+    return currentLocale.languageCode == 'pt' ||
+        currentLocale.countryCode == 'BR';
   }
 
   double width(BuildContext context) {
@@ -342,6 +341,48 @@ extension TipShow on BuildContext {
             insetPadding: EdgeInsets.zero,
             backgroundColor: Colors.transparent,
             child: v,
+          ),
+        );
+      },
+    );
+  }
+}
+
+/// 水平滑动弹层工具：打开时从屏幕左侧滑入，关闭时沿原路径反向滑出。
+///
+/// 用法：`context.tipShowFromLeft(const ASSGuideAMagicShopPage())`。
+extension TipShowFromLeft on BuildContext {
+  Future<T?> tipShowFromLeft<T>(
+    Widget child, {
+    Color? bc,
+    Duration duration = const Duration(milliseconds: 360),
+  }) {
+    return showGeneralDialog<T>(
+      context: this,
+      barrierDismissible: false,
+      barrierColor: bc ?? Colors.black.withValues(alpha: 0.65),
+      transitionDuration: duration,
+      transitionBuilder: (context, animation, secondaryAnimation, routeChild) {
+        // animation 在关闭时会从 1 反向回到 0，因此无需额外控制器，
+        // 同一条 Tween 会自然完成“居中 -> 左侧”的反向平移动画。
+        final slideAnimation =
+            Tween<Offset>(begin: const Offset(-1, 0), end: Offset.zero).animate(
+              CurvedAnimation(
+                parent: animation,
+                curve: Curves.easeOutCubic,
+                reverseCurve: Curves.easeInCubic,
+              ),
+            );
+
+        return SlideTransition(position: slideAnimation, child: routeChild);
+      },
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return PopScope(
+          canPop: false,
+          child: Dialog(
+            insetPadding: EdgeInsets.zero,
+            backgroundColor: Colors.transparent,
+            child: child,
           ),
         );
       },

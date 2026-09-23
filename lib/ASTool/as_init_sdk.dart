@@ -20,7 +20,6 @@ import 'package:thinkup_sdk/at_init.dart';
 import '../ASModel/ASFKModel.dart';
 import 'as_ad_manger.dart';
 import 'as_extension_help.dart';
-import 'ASFKManger.dart';
 import 'ASTBAEventTool.dart';
 import 'ASTrackEvent.dart';
 import 'as_LocalProvider.dart';
@@ -45,9 +44,9 @@ class ASSDKHelpers {
   bool is_ad_suc = false;
 
   Future<void> initSDK() async {
-    _initAdjustSDk();
-    _initTopon();
-    _asinitloadFireBase();
+    // _initAdjustSDk();
+    // _initTopon();
+    // _asinitloadFireBase();
   }
 
   void _initTopon() async {
@@ -185,19 +184,6 @@ class ASSDKHelpers {
           asLog.success("app firebase remoteconfig olstk_ad_config data $jsonMap");
         } catch (error) {
           asLog.error("app firebase remoteconfig olstk_ad_config error ${error}");
-        }
-      }
-
-
-      final c170_risk_control = remoteConfig.getValue('c170_risk_control').asString();
-      if (c170_risk_control != ''){
-        try {
-          Map<String, dynamic> jsonMap = json.decode(c170_risk_control);
-          var fkModel = ASFkModel.fromJson(jsonMap);
-          ASFKManger().fkModel = fkModel;
-          asLog.success("app firebase remoteconfig c170_risk_control data $jsonMap");
-        } catch (error) {
-          asLog.error("app firebase remoteconfig c170_risk_control error ${error}");
         }
       }
 

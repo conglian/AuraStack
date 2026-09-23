@@ -14,7 +14,6 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../ASTool/ASAudioUtils.dart';
@@ -104,33 +103,33 @@ class ASToolDialogState extends State<ASToolDialog>
   Completer<void>? _settingsReturnCompleter;
   bool _waitingForNotificationSettings = false;
 
-  Future<void> _openNotificationSettings() async {
-    _waitingForNotificationSettings = true;
-    _settingsReturnCompleter = Completer<void>();
-    try {
-      await AppSettings.openAppSettings(type: AppSettingsType.notification);
-      await _settingsReturnCompleter!.future;
-      as_event_fire(ASTrackEvent.notificationConfirmSuccess, {});
-      final notificationsEnabled =
-          await AndroidFlutterLocalNotificationsPlugin()
-              .areNotificationsEnabled();
-      if (notificationsEnabled == true) {
-        final prefs = await SharedPreferences.getInstance();
-        if (!(prefs.getBool('as_notification_permission_rewarded') ?? false)) {
-          await ASLocalProvider.instance.updatedouble(
-            ASLocalProvider.instance.as_dollar_numberName,
-            10,
-          );
-          await prefs.setBool('as_notification_permission_rewarded', true);
-        }
-      }
-    } catch (_) {
-      as_event_fire(ASTrackEvent.notificationConfirmFail, {});
-    } finally {
-      _waitingForNotificationSettings = false;
-      _settingsReturnCompleter = null;
-    }
-  }
+  // Future<void> _openNotificationSettings() async {
+  //   _waitingForNotificationSettings = true;
+  //   _settingsReturnCompleter = Completer<void>();
+  //   try {
+  //     await AppSettings.openAppSettings(type: AppSettingsType.notification);
+  //     await _settingsReturnCompleter!.future;
+  //     as_event_fire(ASTrackEvent.notificationConfirmSuccess, {});
+  //     final notificationsEnabled =
+  //         await AndroidFlutterLocalNotificationsPlugin()
+  //             .areNotificationsEnabled();
+  //     if (notificationsEnabled == true) {
+  //       final prefs = await SharedPreferences.getInstance();
+  //       if (!(prefs.getBool('as_notification_permission_rewarded') ?? false)) {
+  //         await ASLocalProvider.instance.updatedouble(
+  //           ASLocalProvider.instance.as_dollar_numberName,
+  //           10,
+  //         );
+  //         await prefs.setBool('as_notification_permission_rewarded', true);
+  //       }
+  //     }
+  //   } catch (_) {
+  //     as_event_fire(ASTrackEvent.notificationConfirmFail, {});
+  //   } finally {
+  //     _waitingForNotificationSettings = false;
+  //     _settingsReturnCompleter = null;
+  //   }
+  // }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
@@ -267,7 +266,7 @@ class ASToolDialogState extends State<ASToolDialog>
                             ASTrackEvent.notificationConfirmAllow,
                             {},
                           );
-                          await _openNotificationSettings();
+                          // await _openNotificationSettings();
                         }
                         if (!context.mounted) return;
                         Navigator.pop(context, 0);

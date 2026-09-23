@@ -1,1 +1,0 @@
--keep class cn.shuzilm.core.** {*;}
