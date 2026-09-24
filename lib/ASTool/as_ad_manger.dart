@@ -106,6 +106,7 @@ class ASCardAds {
   double _adRevenues = 0.0;
 
   List<ASCardAuraAdModel> _ads = [];
+  final Set<String> _loadingAdIds = <String>{};
   // 是否显示广告中
   late bool is_showAd = false;
   // 测试打开，上线关闭
@@ -160,6 +161,10 @@ class ASCardAds {
         bool mustShow = false,
         bool showDialog = true,
       }) async {
+    if (placeID == ASTrackEvent.launchHotInterstitial && hasAdInProgress()) {
+      asLog.debug("$runtimeType hot launch ad ignored while another ad is showing");
+      return;
+    }
     if (skipAd) {
       // await setTxProgress();
       onAdClosed ??= adDidClosed;
@@ -175,17 +180,22 @@ class ASCardAds {
       resetHandler();
       return;
     }
-
-    if (someAdIsShowing()) {
-      asLog.debug("$runtimeType ad is showing,cancel this request");
-      return;
-    }
     onAdClosed ??= adDidClosed;
     quizAdPlaceID ??= placeID;
     String adType = placeID.contains("rv") ? "rv" : "int";
     bool defaultMode = _ASCardAuraAdModel?.olstk_switch ?? false;
     asLog.debug('$runtimeType ad service request to show [$quizAdPlaceID], ad type is $adType, use mode #$defaultMode');
     as_event_fire(ASTrackEvent.adChance, {"ad_pos_id": placeID, 'ad_format' : placeID.contains('int') ? 'int' : 'rv'});
+
+    // 正在播放不显示
+    if (someAdIsShowing()) {
+      asLog.debug("$runtimeType ad is showing,cancel this request");
+      as_event_fire(
+        ASTrackEvent.adImpressionFail,
+        {"ad_pos_id": placeID, "reason": 'Playing advertisement'},
+      );
+      return;
+    }
 
     if (defaultMode == false) {
       _showA(adType, placeID,onCacheResponse, context: context, showDialog: showDialog);
@@ -469,11 +479,13 @@ extension AdServiceExtension on ASCardAds {
       String source = ad.source;
       String adID = ad.ad_identifer;
 
-      if (status == 0) {
+      if (status == 0 && _loadingAdIds.add(adID)) {
+        var didRequest = false;
         if (type == "interstitial") {
           if (source == "max") {
             // AppLovinMAX.loadInterstitial(adID);
           } else if (source == "topon") {
+            didRequest = true;
             ATInterstitialManager.loadInterstitialAd(
               placementID: adID,
               extraMap: {},
@@ -483,26 +495,27 @@ extension AdServiceExtension on ASCardAds {
           if (source == "max") {
             // AppLovinMAX.loadRewardedAd(adID);
           } else {
+            didRequest = true;
             ATRewardedManager.loadRewardedVideo(
               placementID: adID,
               extraMap: {},
             );
           }
         }
+        if (!didRequest) {
+          _loadingAdIds.remove(adID);
+          continue;
+        }
         asLog.debug("$runtimeType ad requesting [start],status = $status, type is $type, source is $source, id is $adID");
-      } else if (status == 1) {
-        asLog.debug("$runtimeType ad requesting [requesting] status = $status, type is $type, source is $source, id is $adID");
-      } else {
-        asLog.debug("$runtimeType ad requesting [requested] status = $status, type is $type, source is $source, id is $adID");
+        as_event_fire(
+          ASTrackEvent.adRequest,
+          {
+            "ad_code_id": adID,
+            "ad_format": type,
+            "ad_source_client": source,
+          },
+        );
       }
-      as_event_fire(
-        ASTrackEvent.adRequest,
-        {
-          "ad_code_id": adID,
-          "ad_format": type,
-          "ad_source_client": source,
-        },
-      );
     }
   }
 
@@ -715,54 +728,13 @@ extension AdServiceExtension on ASCardAds {
     ATInterstitialResponse? toponInt,
     ATRewardResponse? toponReward,
   }) async {
-    String adID = "";
-    double revenue = 0;
-    String networkName = "";
-    String sdk = "";
-    // if (maxAd != null) {
-    //   adID = maxAd.adUnitId;
-    //   revenue = maxAd.revenue;
-    //   networkName = "max";
-    //   sdk = "applovin_max_sdk";
-    // }
-    if (toponInt != null) {
-      sdk = "topon_sdk";
-      adID = toponInt.placementID;
-      revenue = toponInt.extraMap["publisher_revenue"] ?? 0;
-      networkName = "topon";
-      String intInfo = await ATInterstitialManager.getInterstitialValidAds(
-        placementID: adID,
-      );
-      try {
-        List<dynamic> infoMap = json.decode(intInfo);
-        if (infoMap.isNotEmpty) {
-          Map<String, dynamic> d = infoMap.first;
-          revenue = d["publisher_revenue"] ?? 0;
-        }
-      } catch (error) {
-        asLog.error("$runtimeType decode topon int info error $error");
-      }
-    }
-    if (toponReward != null) {
-      sdk = "topon_sdk";
-      adID = toponReward.placementID;
-      networkName = "topon";
-      String intInfo = await ATRewardedManager.getRewardedVideoValidAds(
-        placementID: adID,
-      );
-      try {
-        List<dynamic> infoMap = json.decode(intInfo);
-        if (infoMap.isNotEmpty) {
-          Map<String, dynamic> d = infoMap.first;
-          revenue = d["publisher_revenue"] ?? 0;
-        }
-      } catch (error) {
-        asLog.error("$runtimeType decode topon int info error $error");
-      }
-    }
-
+    final adID = toponInt?.placementID ?? toponReward?.placementID ?? "";
     if (adID.isEmpty) {
       asLog.error("$runtimeType ad did loaded but id is empty id = $adID");
+      return;
+    }
+    if (!_loadingAdIds.remove(adID)) {
+      asLog.debug("$runtimeType ignore duplicate ad loaded callback id = $adID");
       return;
     }
 
@@ -772,23 +744,60 @@ extension AdServiceExtension on ASCardAds {
       return;
     }
 
-    _ads[index].status = 1;
-    _ads[index].ecpm = revenue;
-    _ads[index].networkName = networkName;
-    _ads[index].sdk = sdk;
-    asLog.success("$runtimeType ad did load success [${_ads[index].source}] type = ${_ads[index].type} id = ${_ads[index].ad_identifer} ecpm = ${_ads[index].ecpm} network = ${_ads[index].networkName}");
+    double revenue = 0;
+    const networkName = "topon";
+    const sdk = "topon_sdk";
+    // if (maxAd != null) {
+    //   adID = maxAd.adUnitId;
+    //   revenue = maxAd.revenue;
+    //   networkName = "max";
+    //   sdk = "applovin_max_sdk";
+    // }
+    if (toponInt != null) {
+      revenue = toponInt.extraMap["publisher_revenue"] ?? 0;
+    }
+
+    final ad = _ads[index];
+    ad.status = 1;
+    ad.ecpm = revenue;
+    ad.networkName = networkName;
+    ad.sdk = sdk;
     as_event_fire(
       ASTrackEvent.adReturn,
       {
-        "ad_code_id": _ads[index].ad_identifer,
-        "ad_format": _ads[index].type == "reward" ? "rv" : "int",
-        "ad_source_client": _ads[index].networkName,
+        "ad_code_id": ad.ad_identifer,
+        "ad_format": ad.type == "reward" ? "rv" : "int",
+        "ad_source_client": ad.networkName,
         "olstk_ad_request_time": Random().nextInt(4),
       },
     );
+
+    try {
+      final cacheInfo = toponInt != null
+          ? await ATInterstitialManager.getInterstitialValidAds(
+              placementID: adID,
+            )
+          : await ATRewardedManager.getRewardedVideoValidAds(
+              placementID: adID,
+            );
+      final infoMap = json.decode(cacheInfo) as List<dynamic>;
+      if (infoMap.isNotEmpty) {
+        final data = infoMap.first as Map<String, dynamic>;
+        revenue = data["publisher_revenue"] ?? revenue;
+      }
+    } catch (error) {
+      asLog.error("$runtimeType decode topon ad info error $error");
+    }
+
+    ad.ecpm = revenue;
+    asLog.success("$runtimeType ad did load success [${ad.source}] type = ${ad.type} id = ${ad.ad_identifer} ecpm = ${ad.ecpm} network = ${ad.networkName}");
   }
 
   void _adDidLoadFailed(String adID, String reason, String type) {
+    if (!_loadingAdIds.remove(adID)) {
+      asLog.debug("$runtimeType ignore duplicate ad load failed callback id = $adID");
+      return;
+    }
     int index = _ads.indexWhere((test) => test.ad_identifer == adID);
     if (index == -1) {
       asLog.error("$runtimeType ad did load failed but cant find in ads data from id = $adID");
@@ -945,6 +954,10 @@ extension AdServiceExtension on ASCardAds {
 
   bool someAdIsShowing() {
     return _ads.any((e) => e.status == 2);
+  }
+
+  bool hasAdInProgress() {
+    return is_showAd || someAdIsShowing();
   }
 }
 

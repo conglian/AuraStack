@@ -217,8 +217,12 @@ class ASYouWinDialogState extends State<ASYouWinDialog>
                         ASCardAds().as_showAd(
                           context,
                           _rewardAdPlace(widget.rewardType, 'int'),
-                          onCacheResponse: (onCacheResponse) {
+                          onCacheResponse: (onCacheResponse) async {
                             Navigator.pop(context, 0);
+                            await ASLocalProvider.instance.updatedouble(
+                              ASLocalProvider.instance.as_dollar_numberName,
+                              0.to2Double(widget.award * 1),
+                            );
                           },
                           adDidClosed: (adDidClosed) async {
                             Navigator.pop(context, 1);
@@ -545,8 +549,12 @@ class ASSuperWinDialogState extends State<ASSuperWinDialog>
                         ASCardAds().as_showAd(
                           context,
                           _rewardAdPlace(widget.rewardType, 'int'),
-                          onCacheResponse: (onCacheResponse) {
+                          onCacheResponse: (onCacheResponse) async {
                             Navigator.pop(context, 0);
+                            await ASLocalProvider.instance.updatedouble(
+                              ASLocalProvider.instance.as_dollar_numberName,
+                              0.to2Double(widget.award * 1),
+                            );
                           },
                           adDidClosed: (adDidClosed) async {
                             Navigator.pop(context, 1);
@@ -786,8 +794,12 @@ class ASJackPotDialogState extends State<ASJackPotDialog>
                     ASCardAds().as_showAd(
                       context,
                       _rewardAdPlace(widget.rewardType, 'rv'),
-                      onCacheResponse: (onCacheResponse) {
+                      onCacheResponse: (onCacheResponse) async {
                         Navigator.pop(context, 0);
+                        await ASLocalProvider.instance.updatedouble(
+                          ASLocalProvider.instance.as_dollar_numberName,
+                          0.to2Double(widget.award * 2),
+                        );
                       },
                       adDidClosed: (adDidClosed) async {
                         Navigator.pop(context, 1);
@@ -868,8 +880,12 @@ class ASJackPotDialogState extends State<ASJackPotDialog>
                         ASCardAds().as_showAd(
                           context,
                           _rewardAdPlace(widget.rewardType, 'int'),
-                          onCacheResponse: (onCacheResponse) {
+                          onCacheResponse: (onCacheResponse) async {
                             Navigator.pop(context, 0);
+                            await ASLocalProvider.instance.updatedouble(
+                              ASLocalProvider.instance.as_dollar_numberName,
+                              0.to2Double(widget.award * 1),
+                            );
                           },
                           adDidClosed: (adDidClosed) async {
                             Navigator.pop(context, 1);
@@ -1542,8 +1558,12 @@ class ASBoxOpenDiaologWidgetState extends State<ASBoxOpenDiaologWidget>
                     ASCardAds().as_showAd(
                       context,
                       ASTrackEvent.boxInterstitial,
-                      onCacheResponse: (onCacheResponse) {
+                      onCacheResponse: (onCacheResponse) async {
                         Navigator.pop(context, 0);
+                        await ASLocalProvider.instance.updatedouble(
+                          ASLocalProvider.instance.as_dollar_numberName,
+                          0.to2Double(value),
+                        );
                       },
                       adDidClosed: (adDidClosed) async {
                         //   playAwardmp3();
@@ -1619,6 +1639,9 @@ class ASBoxOldDiaologWidgetState extends State<ASBoxOldDiaologWidget>
     super.initState();
     as_event_fire(ASTrackEvent.dailyBox, {});
     doals_one = ASGameProgressManager().getBoxRewardValue();
+    open_index = doals_one;
+    _openOne = true;
+    openBox();
     // sj_event_fire('box_pop_nu', {});
     updateboxnumber();
   }
@@ -1692,32 +1715,14 @@ class ASBoxOldDiaologWidgetState extends State<ASBoxOldDiaologWidget>
               top: _openOne ? 280.h : 320.h,
               width: _openOne ? 280.0.w : 200.w,
               height: _openOne ? 200.0.h : 150.h,
-              child: ParticleButton(
-                onTap: () {
-                  as_event_fire(ASTrackEvent.dailyBoxClick, {});
-                  setState(() {
-                    open_index = doals_one;
-                    _openOne = true;
-                  });
-                  openBox();
-                },
-                child: ASSpine(
-                  path: _openOne == true
-                      ? 'box_old_2'.spinepaths()
-                      : 'box_old_1'.spinepaths(),
-                  loop: _openOne == true ? false : true,
-                ),
+              child: ASSpine(
+                path: _openOne == true
+                    ? 'box_old_2'.spinepaths()
+                    : 'box_old_1'.spinepaths(),
+                loop: _openOne == true ? false : true,
               ),
             ),
           ),
-          if (!_openOne)
-            Positioned(
-              left: (0.width(context) - 80.w) * 0.5 + 42.w,
-              top: 380.h,
-              child: IgnorePointer(
-                child: ASTapGuide(width: 80.w, height: 80.h),
-              ),
-            ),
           Visibility(
             visible: _openOne,
             child: Positioned(

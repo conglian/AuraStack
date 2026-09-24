@@ -26,6 +26,8 @@ class ASNoticeHelp {
 
   Future<void>? _notificationPermissionStatusFuture;
   bool _notificationFollowUpShownThisLaunch = false;
+  bool _lifecycleListenerInitialized = false;
+  bool _backgroundedWhileAdShowing = false;
 
   ASNoticeHelp._internal();
 
@@ -662,12 +664,17 @@ class ASNoticeHelp {
     );
   }
 
-  Future<void> _initLifecycleListener() async {
-    FlutterLifecycleDetector().onBackgroundChange.listen((isBackground) async {
+  void _initLifecycleListener() {
+    if (_lifecycleListenerInitialized) return;
+    _lifecycleListenerInitialized = true;
+
+    FlutterLifecycleDetector().onBackgroundChange.listen((isBackground) {
       /// `isBackground` is true => background
       /// `isBackground` is false => foreground
       asLog.info('Status background $isBackground');
       if (isBackground == true) {
+        _backgroundedWhileAdShowing =
+            _backgroundedWhileAdShowing || ASCardAds().hasAdInProgress();
         asLog.info('App进入后台');
         ASAudioUtils().pauseBGM();
         ASFKManger().as_add_tabsession_custom();
@@ -677,8 +684,11 @@ class ASNoticeHelp {
           'pak_version': ASLocalProvider.instance.as_login_status ? 1 : 0,
         });
       } else {
+        final returnedFromAd = _backgroundedWhileAdShowing;
+        _backgroundedWhileAdShowing = false;
+        final adInProgress = ASCardAds().hasAdInProgress();
         asLog.info('App进入前台');
-        if (ASLocalProvider.instance.as_bg_music && !ASCardAds().someAdIsShowing()){
+        if (ASLocalProvider.instance.as_bg_music && !adInProgress) {
           ASAudioUtils().playBGM();
         }
         ASFKManger().as_add_tabsession_custom();
@@ -687,9 +697,13 @@ class ASNoticeHelp {
         });
         // 执行前台逻辑
         as_session_fire();
-        if (!ASCardAds().is_showAd) {
+        final homeState = homeKey.currentState;
+        if (!returnedFromAd &&
+            !adInProgress &&
+            homeState != null &&
+            homeState.mounted) {
           ASCardAds().as_showAd(
-            homeKey.currentState!.context,
+            homeState.context,
             ASTrackEvent.launchHotInterstitial,
             showDialog: false,
             onCacheResponse: (onCacheResponse) {},
